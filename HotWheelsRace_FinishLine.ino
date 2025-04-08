@@ -31,12 +31,19 @@ XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 #define REPEATED_TOUCH_TOLERANCE 1000
 
 #define LANES 4
-#define NUMBER_OF_CARS 6
+#define NUMBER_OF_CARS 7
 #define NUMBER_OF_TIMES 3
 const int regularHeatCount = ceil(((NUMBER_OF_CARS * NUMBER_OF_TIMES) / float(min(LANES, NUMBER_OF_CARS))));
+
+// heat types
 #define HEAT_TYPE_REGULAR 0
 #define HEAT_TYPE_FINALS 1
 #define HEAT_TYPE_EXTRA 2
+
+// lane status types
+#define AT_GATE 0
+#define RACING 1
+#define FINISHED 2
 
 int breakBeamPin[LANES] = {6, 7, 18, 16};
 int finishLineLED[LANES] = {9, 10, 46, 17};
@@ -95,8 +102,22 @@ class Car {
       _carName = carName;
     }
 
+    String toString() {
+      String str;
+      str += _driverName; str += ":"; str += _carName;
+      return str;
+    }
+
+    void setDriverName(String driverName) {
+      _driverName = driverName;
+    }
+
     String getDriverName() {
       return _driverName;
+    }
+
+    void setCarName(String carName) {
+      _carName = carName;
     }
 
     String getCarName() {
@@ -121,14 +142,35 @@ class RaceData {
       }
     }
 
+    String toString() {
+      String str;
+      for (int i=0 ; i < _carCount ; i++) {
+        str += "_car["; str += i; str += "]: "; str += _car[i].toString(); str += "\n";
+        str += "  "; str += _elapsedTimeCount[i]; str += ": ";
+        for (int j=0 ; j < _elapsedTimeCount[i] ; j++) {
+          str += _elapsedTime[i][j]; str += " ";
+        }
+        str += "--> "; str += _average[i]; str += "\n";
+      }
+      return str;
+    }
+
     void addCar(Car c) {
+      // Serial.print("addCar: _carCount: "); Serial.print(_carCount); Serial.print(", NUMBER_OF_CARS: "); Serial.println(NUMBER_OF_CARS);
       if (_carCount == NUMBER_OF_CARS) {
         Serial.println("ERROR: carCount exceeds NUMBER_OF_RACERS");
         return;
       }
       _car[_carCount] = c;
       _carCount++;
+      // Serial.print("_carCount incremented to: "); Serial.println(_carCount);
     }
+
+    // void setCar(int carIndex, Car c) {
+    //   if (index < _carCount) {
+    //     _car[carIndex] = c;
+    //   }
+    // }
 
     Car getCar(int index) {
       if (index < NUMBER_OF_CARS) {
@@ -165,8 +207,26 @@ class RaceData {
           sum += _elapsedTime[carIndex][elapsedTimeIndex];
         }
         _average[carIndex] = sum / _elapsedTimeCount[carIndex];
+        // Serial.print("averages: carIndex: "); Serial.print(carIndex);
+        // Serial.print(", sum: "); Serial.print("sum");
+        // Serial.print(", _elapsedTimeCount["); Serial.print(carIndex); Serial.print("]: "); Serial.print(_elapsedTimeCount[carIndex]);
+        // Serial.print(", average: "); Serial.println(_average[carIndex]);
       }
     }
+
+    void createFinalHeat() {
+      // Heat finals(regularHeatCount, min(NUMBER_OF_CARS, LANES), HEAT_TYPE_FINALS);
+      // return finals;
+    }
+
+    void  createExtraHeat() {
+      // Heat extra(regularHeatCount + 1, LANES, HEAT_TYPE_EXTRA);
+      // for (int lane = 0 ; lane < LANES ; lane++) {
+      //   extra.setLaneAssignment(lane, Car("Anyone", "Any Car"));
+      // }
+      // return extra;
+    }
+
 };
 
 class Heat {
@@ -196,7 +256,7 @@ class Heat {
       str += "      _heatType: "; str += _heatType; str += "\n";
       str += "      _laneAssignment:\n";
       for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
-        str += "        _laneAssignment["; str += laneIndex; str += "]: "; str += _laneAssignment[laneIndex]; str += " (carIndex)\n";
+        str += "        _laneAssignment["; str += laneIndex; str += "]: \""; str += _laneAssignment[laneIndex]; str += "\" (carIndex)\n";
       }
       return str;
     }
@@ -250,7 +310,7 @@ class Schedule {
     Schedule(int numberOfCars, int numberOfTimes, int laneUsageCount) {
       _numberOfCars = numberOfCars;
       _numberOfTimes = numberOfTimes;
-      _laneUsageCount = laneUsageCount; // TODO: this is the max tha gets passed to the Heats, the last regular heat may be less
+      _laneUsageCount = laneUsageCount;
       _currentHeatNumber = 0;
     }
 
@@ -325,6 +385,30 @@ class Schedule {
 
     void setExtra(Heat extra) {
       _extra = extra;
+    }
+};
+
+class Environment {
+  private:
+    int _laneStatus[LANES];
+  public:
+    Environment() {
+      for (int i=0 ; i < LANES ; i++) {
+        _laneStatus[i] = AT_GATE;
+      }
+    }
+
+    void setLaneStatus(int lane, int status) {
+      if (lane < LANES) {
+        _laneStatus[lane] = status;
+      }
+    }
+
+    int getLaneStatus(int lane) {
+      if (lane < LANES) {
+        return _laneStatus[lane];
+      }
+      return -1;
     }
 };
 
@@ -405,11 +489,33 @@ void displayToggleGate() {
   tft.drawCentreString("Toggle start gate to establish connection. ", 160, 20, 2);
 }
 
+// class RaceData;
+RaceData raceData;
+Schedule sched(7, 3, 4); // 7 cars, 3 times each, 4 lanes
+// Environment env();
+
 /* Main */
 void setup() {
   Serial.begin(115200);
 
-  Schedule sched(7, 3, 4); // 7 cars, 3 times each, 4 lanes
+  raceData.addCar(Car("Happy", "Elated"));      // 0
+  raceData.addCar(Car("Sleepy", "Tired"));      // 1
+  raceData.addCar(Car("Sneezy", "Gesundheit")); // 2
+  raceData.addCar(Car("Dopey", "Duh"));         // 3
+  raceData.addCar(Car("Doc", "PhD"));           // 4
+  raceData.addCar(Car("Grumpy", "Old Man"));    // 5
+  raceData.addCar(Car("Bashful", "Shy"));       // 6
+
+  raceData.addElapsedTime(0, 2.0); raceData.addElapsedTime(0, 3.0); raceData.addElapsedTime(0, 4.0);
+  raceData.addElapsedTime(1, 5.0); raceData.addElapsedTime(1, 6.0); raceData.addElapsedTime(1, 7.0);
+  raceData.addElapsedTime(2, 8.0); raceData.addElapsedTime(2, 9.0); raceData.addElapsedTime(2, 10.0);
+  raceData.addElapsedTime(3, 11.0); raceData.addElapsedTime(3, 12.0); raceData.addElapsedTime(3, 13.0);
+  raceData.addElapsedTime(4, 14.0); raceData.addElapsedTime(4, 15.0); raceData.addElapsedTime(4, 16.0);
+  raceData.addElapsedTime(5, 17.0); raceData.addElapsedTime(5, 18.0); raceData.addElapsedTime(5, 19.0);
+  raceData.addElapsedTime(6, 20.0); raceData.addElapsedTime(6, 21.0); raceData.addElapsedTime(6, 22.0);
+  raceData.calculateAverages();
+  Serial.println(raceData.toString());
+
   sched.createRegularHeats();
   Serial.println(sched.toString());
 

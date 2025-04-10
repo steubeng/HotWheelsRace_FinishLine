@@ -31,7 +31,7 @@ XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 #define REPEATED_TOUCH_TOLERANCE 1000
 
 #define LANES 4
-#define NUMBER_OF_CARS 8
+#define NUMBER_OF_CARS 7
 #define NUMBER_OF_TIMES 3
 const int regularHeatCount = ceil(((NUMBER_OF_CARS * NUMBER_OF_TIMES) / float(min(LANES, NUMBER_OF_CARS))));
 
@@ -128,6 +128,8 @@ class Car {
 class RaceData {
   private:
     Car _car[NUMBER_OF_CARS];
+    int _leaderboardCar[NUMBER_OF_CARS];
+    float _leaderboardTime[NUMBER_OF_CARS];
     float _elapsedTime[NUMBER_OF_CARS][NUMBER_OF_TIMES]; // seconds
     float _average[NUMBER_OF_CARS]; // seconds
     int _carCount;
@@ -146,24 +148,24 @@ class RaceData {
       String str;
       for (int i=0 ; i < _carCount ; i++) {
         str += "_car["; str += i; str += "]: "; str += _car[i].toString(); str += "\n";
-        str += "  "; str += _elapsedTimeCount[i]; str += ": ";
+        str += "  "; str += _elapsedTimeCount[i]; str += " time records: ";
         for (int j=0 ; j < _elapsedTimeCount[i] ; j++) {
           str += _elapsedTime[i][j]; str += " ";
         }
-        str += "--> "; str += _average[i]; str += "\n";
+        str += "--> "; str += _average[i]; str += " (average time)\n";
       }
       return str;
     }
 
     void addCar(Car c) {
-      Serial.print("addCar: _carCount: "); Serial.print(_carCount); Serial.print(", NUMBER_OF_CARS: "); Serial.println(NUMBER_OF_CARS);
+      // Serial.print("addCar: _carCount: "); Serial.print(_carCount); Serial.print(", NUMBER_OF_CARS: "); Serial.println(NUMBER_OF_CARS);
       if (_carCount == NUMBER_OF_CARS) {
         Serial.println("ERROR: carCount exceeds NUMBER_OF_RACERS");
         return;
       }
       _car[_carCount] = c;
       _carCount++;
-      Serial.print("_carCount incremented to: "); Serial.println(_carCount);
+      // Serial.print("_carCount incremented to: "); Serial.println(_carCount);
     }
 
     // void setCar(int carIndex, Car c) {
@@ -214,6 +216,44 @@ class RaceData {
       }
     }
 
+    void generateLeaderboard() {
+      for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
+        _leaderboardCar[i] = i;
+        _leaderboardTime[i] = _average[i];
+      }
+      for (int i=0 ; i < NUMBER_OF_CARS - 1 ; i++) {
+        for (int j=0 ; j < NUMBER_OF_CARS - i - 1 ; j++) {
+          if (_leaderboardTime[j] > _leaderboardTime[j+1]) {
+            float tempTime = _leaderboardTime[j];
+            _leaderboardTime[j] = _leaderboardTime[j+1];
+            _leaderboardTime[j+1] = tempTime;
+            int tempIndex = _leaderboardCar[j];
+            _leaderboardCar[j] = _leaderboardCar[j+1];
+            _leaderboardCar[j+1] = tempIndex;
+          }
+        }
+      }
+    }
+
+    String leaderboardToString() {
+      String str = "Leaderboard:\n";
+      for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
+        String th;
+        if (((i+1) % 10 == 1) && (i != 10)) {
+          th = "st";
+        } else if (((i+1) % 10 == 2) && (i!= 11)) {
+          th = "nd";
+        } else if (((i+1) % 10 == 3) && (i!= 12)) {
+          th = "rd";
+        } else {
+          th = "th";
+        }
+        str += "  ["; str += (i+1); str += th; str += "] car: "; str += (_leaderboardCar[i] + 1);
+        str += ", average time: "; str += _leaderboardTime[i]; str += "\n";
+      }
+      return str;
+    }
+
     void createFinalHeat() {
       // Heat finals(regularHeatCount, min(NUMBER_OF_CARS, LANES), HEAT_TYPE_FINALS);
       // return finals;
@@ -250,13 +290,12 @@ class Heat {
 
     String toString() {
       String str;
-      str += "    Heat\n";
-      str += "      _heatNumber: "; str += _heatNumber; str += "\n";
-      str += "      _laneUsageCount: "; str += _laneUsageCount; str += "\n";
-      str += "      _heatType: "; str += _heatType; str += "\n";
-      str += "      _laneAssignment:\n";
+      str += "    _heatNumber: "; str += _heatNumber; str += "\n";
+      str += "    _laneUsageCount: "; str += _laneUsageCount; str += "\n";
+      str += "    _heatType: "; str += _heatType; str += "\n";
+      str += "    _laneAssignment:\n";
       for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
-        str += "        _laneAssignment["; str += laneIndex; str += "]: \""; str += _laneAssignment[laneIndex]; str += "\" (carIndex)\n";
+        str += "      _laneAssignment["; str += laneIndex; str += "]: \""; str += _laneAssignment[laneIndex]; str += "\" (carIndex)\n";
       }
       return str;
     }
@@ -323,11 +362,11 @@ class Schedule {
     String toString() {
       String str;
       str += "Schedule:\n";
-      str += "  _currentHeatNumber: "; str += _currentHeatNumber; str += "\n";
+      str += "  _currentHeatNumber: "; str += (_currentHeatNumber + 1); str += "\n";
       str += "  _numberOfCars: "; str += _numberOfCars; str += "\n";
       str += "  _numberOfTimes: "; str += _numberOfTimes; str += "\n";
       str += "  _laneUsageCount: "; str += _laneUsageCount; str += "\n";
-      str += "  _heat:\n";
+      str += "  _heat array:\n";
       for (int heatIndex = 0 ; heatIndex < regularHeatCount ; heatIndex++) {
         str += _heat[heatIndex].toString();
       }
@@ -507,26 +546,30 @@ Schedule sched(min(LANES, NUMBER_OF_CARS), NUMBER_OF_CARS, NUMBER_OF_TIMES); // 
 /* Main */
 void setup() {
   Serial.begin(115200);
-  raceData.addCar(Car("Happy", "Elated"));      // 0
-  raceData.addCar(Car("Sleepy", "Tired"));      // 1
-  raceData.addCar(Car("Sneezy", "Gesundheit")); // 2
-  // raceData.addCar(Car("Dopey", "Duh"));         // 3
-  // raceData.addCar(Car("Doc", "PhD"));           // 4
-  // raceData.addCar(Car("Grumpy", "Old Man"));    // 5
-  // raceData.addCar(Car("Bashful", "Shy"));       // 6
-
-  // raceData.addElapsedTime(0, 2.0); raceData.addElapsedTime(0, 3.0); raceData.addElapsedTime(0, 4.0);
-  // raceData.addElapsedTime(1, 5.0); raceData.addElapsedTime(1, 6.0); raceData.addElapsedTime(1, 7.0);
-  // raceData.addElapsedTime(2, 8.0); raceData.addElapsedTime(2, 9.0); raceData.addElapsedTime(2, 10.0);
-  // raceData.addElapsedTime(3, 11.0); raceData.addElapsedTime(3, 12.0); raceData.addElapsedTime(3, 13.0);
-  // raceData.addElapsedTime(4, 14.0); raceData.addElapsedTime(4, 15.0); raceData.addElapsedTime(4, 16.0);
-  // raceData.addElapsedTime(5, 17.0); raceData.addElapsedTime(5, 18.0); raceData.addElapsedTime(5, 19.0);
-  // raceData.addElapsedTime(6, 20.0); raceData.addElapsedTime(6, 21.0); raceData.addElapsedTime(6, 22.0);
-  // raceData.calculateAverages();
-  // Serial.println(raceData.toString());
 
   sched.createRegularHeats();
   Serial.println(sched.toString());
+
+  raceData.addCar(Car("Happy", "Elated"));      // 0
+  raceData.addCar(Car("Sleepy", "Tired"));      // 1
+  raceData.addCar(Car("Sneezy", "Gesundheit")); // 2
+  raceData.addCar(Car("Dopey", "Duh"));         // 3
+  raceData.addCar(Car("Doc", "PhD"));           // 4
+  raceData.addCar(Car("Grumpy", "Old Man"));    // 5
+  raceData.addCar(Car("Bashful", "Shy"));       // 6
+
+  raceData.addElapsedTime(0, 2.0); raceData.addElapsedTime(0, 3.0); raceData.addElapsedTime(0, 4.0);
+  raceData.addElapsedTime(5, 5.0); raceData.addElapsedTime(5, 6.0); raceData.addElapsedTime(5, 7.0);
+  raceData.addElapsedTime(2, 8.0); raceData.addElapsedTime(2, 9.0); raceData.addElapsedTime(2, 10.0);
+  raceData.addElapsedTime(3, 11.0); raceData.addElapsedTime(3, 12.0); raceData.addElapsedTime(3, 13.0);
+  raceData.addElapsedTime(4, 14.0); raceData.addElapsedTime(4, 15.0); raceData.addElapsedTime(4, 16.0);
+  raceData.addElapsedTime(1, 17.0); raceData.addElapsedTime(1, 18.0); raceData.addElapsedTime(1, 19.0);
+  raceData.addElapsedTime(6, 20.0); raceData.addElapsedTime(6, 21.0); raceData.addElapsedTime(6, 22.0);
+  raceData.calculateAverages();
+  Serial.println(raceData.toString());
+  raceData.generateLeaderboard();
+  Serial.println(raceData.leaderboardToString());
+
 
   touchscreenSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
   touchscreen.begin(touchscreenSPI);
@@ -619,7 +662,9 @@ void loop() {
     if (now - lastTouchMillis > REPEATED_TOUCH_TOLERANCE) {
       // what to do if the screen is touched?
       lastTouchMillis = now;
+      Serial.println(raceData.leaderboardToString());
     }
+
     // printTouchToSerial(x, y, z);
     // printTouchToDisplay(x, y, z);
     // delay(100);

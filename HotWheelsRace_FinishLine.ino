@@ -104,7 +104,7 @@ class Car {
 
     String toString() {
       String str;
-      str += _driverName; str += ":"; str += _carName;
+      str += _driverName; str += "-"; str += _carName;
       return str;
     }
 
@@ -147,8 +147,8 @@ class RaceData {
     String toString() {
       String str;
       for (int i=0 ; i < _carCount ; i++) {
-        str += "_car["; str += i; str += "]: "; str += _car[i].toString(); str += "\n";
-        str += "  "; str += _elapsedTimeCount[i]; str += " time records: ";
+        str += "car "; str += (i+1); str += "  "; str += _car[i].toString(); str += ", ";
+        str += _elapsedTimeCount[i]; str += " time records: ";
         for (int j=0 ; j < _elapsedTimeCount[i] ; j++) {
           str += _elapsedTime[i][j]; str += " ";
         }
@@ -248,7 +248,9 @@ class RaceData {
         } else {
           th = "th";
         }
-        str += "  ["; str += (i+1); str += th; str += "] car: "; str += (_leaderboardCar[i] + 1);
+        str += "  ["; str += (i+1); str += th; str += "] car: ";
+        // str += (_leaderboardCar[i] + 1);
+        str += (getCar(_leaderboardCar[i]).toString());
         str += ", average time: "; str += _leaderboardTime[i]; str += "\n";
       }
       return str;
@@ -292,12 +294,29 @@ class Heat {
       String str;
       str += "    _heatNumber: "; str += _heatNumber; str += "\n";
       str += "    _laneUsageCount: "; str += _laneUsageCount; str += "\n";
-      str += "    _heatType: "; str += _heatType; str += "\n";
+      str += "    _heatType: "; str += getHeatType(_heatType); str += "\n";
       str += "    _laneAssignment:\n";
       for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
         str += "      _laneAssignment["; str += laneIndex; str += "]: \""; str += _laneAssignment[laneIndex]; str += "\" (carIndex)\n";
       }
+      // for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
+      //   str += "      Lane "; str += (laneIndex + 1); str += ": \"";
+      //   str += (getCar(_laneAssignment[laneIndex])).toString();
+      //   str += " (car "; str += (_laneAssignment[laneIndex] + 1); str += ")\n";
+      // }
       return str;
+    }
+
+    String getHeatType(int type) {
+      if (type == HEAT_TYPE_REGULAR) {
+        return "Regular Heat";
+      } else if (type == HEAT_TYPE_FINALS) {
+        return "Finals!!!";
+      } else if (type == HEAT_TYPE_EXTRA) {
+        return "Extra Heat";
+      } else {
+        return "<unknown>";
+      }
     }
 
     void setHeatNumber(int heatNumber) {
@@ -461,6 +480,28 @@ class Environment {
     }
 };
 
+class MyLib_ {
+  private:
+    MyLib_() = default; // Make constructor private
+
+  public:
+    static MyLib_ &getInstance() {
+      static MyLib_ instance;
+      return instance;
+    }
+
+    MyLib_(const MyLib_ &) = delete; // no copying
+    MyLib_ &operator=(const MyLib_ &) = delete;
+
+  public:
+    void begin() {
+      Serial.println("MyLib::begin()");
+    }
+    void doStuff() {
+      Serial.println("MyLib::doStuff()");
+    }
+};
+
 // Creating a new class that inherits from the ESP_NOW_Peer class is required.
 class ESP_NOW_Peer_Class : public ESP_NOW_Peer {
 public:
@@ -538,7 +579,7 @@ void displayToggleGate() {
   tft.drawCentreString("Toggle start gate to establish connection. ", 160, 20, 2);
 }
 
-
+MyLib_ &MyLib = MyLib.getInstance();
 RaceData raceData;
 Schedule sched(min(LANES, NUMBER_OF_CARS), NUMBER_OF_CARS, NUMBER_OF_TIMES); // 4 lanes, 7 cars, 3 times each
 // Environment env();
@@ -546,6 +587,7 @@ Schedule sched(min(LANES, NUMBER_OF_CARS), NUMBER_OF_CARS, NUMBER_OF_TIMES); // 
 /* Main */
 void setup() {
   Serial.begin(115200);
+  MyLib.begin();
 
   sched.createRegularHeats();
   Serial.println(sched.toString());
@@ -663,6 +705,7 @@ void loop() {
       // what to do if the screen is touched?
       lastTouchMillis = now;
       Serial.println(raceData.leaderboardToString());
+      MyLib.doStuff();
     }
 
     // printTouchToSerial(x, y, z);

@@ -125,8 +125,10 @@ class Car {
     }
 };
 
-class RaceData {
+class RaceEvent {
   private:
+    // RaceEvent() = default; // Make constructor private
+
     Car _car[NUMBER_OF_CARS];
     int _leaderboardCar[NUMBER_OF_CARS];
     float _leaderboardTime[NUMBER_OF_CARS];
@@ -135,13 +137,30 @@ class RaceData {
     int _carCount;
     int _elapsedTimeCount[NUMBER_OF_CARS];
 
-  public:
-    RaceData() {
+    RaceEvent() {
       _carCount = 0;
       for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
         _elapsedTimeCount[i] = 0;
         _average[i] = 0;
       }
+    }
+
+  public:
+    static RaceEvent &getInstance() {
+      static RaceEvent instance;
+      return instance;
+    }
+
+    RaceEvent(const RaceEvent &) = delete; // no copying
+    RaceEvent &operator=(const RaceEvent &) = delete;
+
+  public:
+    void begin() {
+      Serial.println("RaceEvent::begin()");
+    }
+
+    void doStuff() {
+      Serial.println("RaceEvent::doStuff()");
     }
 
     String toString() {
@@ -268,16 +287,15 @@ class RaceData {
       // }
       // return extra;
     }
-
 };
 
 class Heat {
   private:
+    RaceEvent &raceEvent = raceEvent.getInstance();
     int _heatNumber;
     int _laneUsageCount;
     int _heatType;
     int _laneAssignment[LANES];
-
 
   public:
     Heat() {
@@ -296,14 +314,14 @@ class Heat {
       str += "    _laneUsageCount: "; str += _laneUsageCount; str += "\n";
       str += "    _heatType: "; str += getHeatType(_heatType); str += "\n";
       str += "    _laneAssignment:\n";
-      for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
-        str += "      _laneAssignment["; str += laneIndex; str += "]: \""; str += _laneAssignment[laneIndex]; str += "\" (carIndex)\n";
-      }
       // for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
-      //   str += "      Lane "; str += (laneIndex + 1); str += ": \"";
-      //   str += (getCar(_laneAssignment[laneIndex])).toString();
-      //   str += " (car "; str += (_laneAssignment[laneIndex] + 1); str += ")\n";
+      //   str += "      _laneAssignment["; str += laneIndex; str += "]: \""; str += _laneAssignment[laneIndex]; str += "\" (carIndex)\n";
       // }
+      for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
+        str += "      Lane "; str += (laneIndex + 1); str += ": \"";
+        str += (raceEvent.getCar(_laneAssignment[laneIndex])).toString();
+        str += " (car "; str += (_laneAssignment[laneIndex] + 1); str += ")\n";
+      }
       return str;
     }
 
@@ -448,11 +466,11 @@ class Schedule {
     }
 
     void setFinals(Heat finals) {
-      _finals = finals;
+      // _finals = finals;
     }
 
     void setExtra(Heat extra) {
-      _extra = extra;
+      // _extra = extra;
     }
 };
 
@@ -480,27 +498,7 @@ class Environment {
     }
 };
 
-class MyLib_ {
-  private:
-    MyLib_() = default; // Make constructor private
 
-  public:
-    static MyLib_ &getInstance() {
-      static MyLib_ instance;
-      return instance;
-    }
-
-    MyLib_(const MyLib_ &) = delete; // no copying
-    MyLib_ &operator=(const MyLib_ &) = delete;
-
-  public:
-    void begin() {
-      Serial.println("MyLib::begin()");
-    }
-    void doStuff() {
-      Serial.println("MyLib::doStuff()");
-    }
-};
 
 // Creating a new class that inherits from the ESP_NOW_Peer class is required.
 class ESP_NOW_Peer_Class : public ESP_NOW_Peer {
@@ -579,38 +577,37 @@ void displayToggleGate() {
   tft.drawCentreString("Toggle start gate to establish connection. ", 160, 20, 2);
 }
 
-MyLib_ &MyLib = MyLib.getInstance();
-RaceData raceData;
+RaceEvent &raceEvent = raceEvent.getInstance();
 Schedule sched(min(LANES, NUMBER_OF_CARS), NUMBER_OF_CARS, NUMBER_OF_TIMES); // 4 lanes, 7 cars, 3 times each
 // Environment env();
 
 /* Main */
 void setup() {
   Serial.begin(115200);
-  MyLib.begin();
+  raceEvent.begin();
 
   sched.createRegularHeats();
   Serial.println(sched.toString());
 
-  raceData.addCar(Car("Happy", "Elated"));      // 0
-  raceData.addCar(Car("Sleepy", "Tired"));      // 1
-  raceData.addCar(Car("Sneezy", "Gesundheit")); // 2
-  raceData.addCar(Car("Dopey", "Duh"));         // 3
-  raceData.addCar(Car("Doc", "PhD"));           // 4
-  raceData.addCar(Car("Grumpy", "Old Man"));    // 5
-  raceData.addCar(Car("Bashful", "Shy"));       // 6
+  raceEvent.addCar(Car("Happy", "Elated"));      // 0
+  raceEvent.addCar(Car("Sleepy", "Tired"));      // 1
+  raceEvent.addCar(Car("Sneezy", "Gesundheit")); // 2
+  raceEvent.addCar(Car("Dopey", "Duh"));         // 3
+  raceEvent.addCar(Car("Doc", "PhD"));           // 4
+  raceEvent.addCar(Car("Grumpy", "Old Man"));    // 5
+  raceEvent.addCar(Car("Bashful", "Shy"));       // 6
 
-  raceData.addElapsedTime(0, 2.0); raceData.addElapsedTime(0, 3.0); raceData.addElapsedTime(0, 4.0);
-  raceData.addElapsedTime(5, 5.0); raceData.addElapsedTime(5, 6.0); raceData.addElapsedTime(5, 7.0);
-  raceData.addElapsedTime(2, 8.0); raceData.addElapsedTime(2, 9.0); raceData.addElapsedTime(2, 10.0);
-  raceData.addElapsedTime(3, 11.0); raceData.addElapsedTime(3, 12.0); raceData.addElapsedTime(3, 13.0);
-  raceData.addElapsedTime(4, 14.0); raceData.addElapsedTime(4, 15.0); raceData.addElapsedTime(4, 16.0);
-  raceData.addElapsedTime(1, 17.0); raceData.addElapsedTime(1, 18.0); raceData.addElapsedTime(1, 19.0);
-  raceData.addElapsedTime(6, 20.0); raceData.addElapsedTime(6, 21.0); raceData.addElapsedTime(6, 22.0);
-  raceData.calculateAverages();
-  Serial.println(raceData.toString());
-  raceData.generateLeaderboard();
-  Serial.println(raceData.leaderboardToString());
+  raceEvent.addElapsedTime(0, 2.0); raceEvent.addElapsedTime(0, 3.0); raceEvent.addElapsedTime(0, 4.0);
+  raceEvent.addElapsedTime(5, 5.0); raceEvent.addElapsedTime(5, 6.0); raceEvent.addElapsedTime(5, 7.0);
+  raceEvent.addElapsedTime(2, 8.0); raceEvent.addElapsedTime(2, 9.0); raceEvent.addElapsedTime(2, 10.0);
+  raceEvent.addElapsedTime(3, 11.0); raceEvent.addElapsedTime(3, 12.0); raceEvent.addElapsedTime(3, 13.0);
+  raceEvent.addElapsedTime(4, 14.0); raceEvent.addElapsedTime(4, 15.0); raceEvent.addElapsedTime(4, 16.0);
+  raceEvent.addElapsedTime(1, 17.0); raceEvent.addElapsedTime(1, 18.0); raceEvent.addElapsedTime(1, 19.0);
+  raceEvent.addElapsedTime(6, 20.0); raceEvent.addElapsedTime(6, 21.0); raceEvent.addElapsedTime(6, 22.0);
+  raceEvent.calculateAverages();
+  Serial.println(raceEvent.toString());
+  raceEvent.generateLeaderboard();
+  Serial.println(raceEvent.leaderboardToString());
 
 
   touchscreenSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
@@ -704,8 +701,8 @@ void loop() {
     if (now - lastTouchMillis > REPEATED_TOUCH_TOLERANCE) {
       // what to do if the screen is touched?
       lastTouchMillis = now;
-      Serial.println(raceData.leaderboardToString());
-      MyLib.doStuff();
+      Serial.println(raceEvent.leaderboardToString());
+      raceEvent.doStuff();
     }
 
     // printTouchToSerial(x, y, z);

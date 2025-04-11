@@ -7,6 +7,7 @@
 #include <ezButton.h>
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
+#include <Car.h>
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -88,42 +89,42 @@ void printTouchToDisplay(int touchX, int touchY, int touchZ) {
   tft.drawCentreString(tempText, centerX, textY, FONT_SIZE);
 }
 
-class Car {
-  private:
-    String _driverName;
-    String _carName;
-  public:
-    Car() {
-      Car("", "");
-    }
+// class Car {
+//   private:
+//     String _driverName;
+//     String _carName;
+//   public:
+//     Car() {
+//       Car("", "");
+//     }
 
-    Car(String driverName, String carName) {
-      _driverName = driverName;
-      _carName = carName;
-    }
+//     Car(String driverName, String carName) {
+//       _driverName = driverName;
+//       _carName = carName;
+//     }
 
-    String toString() {
-      String str;
-      str += _driverName; str += "-"; str += _carName;
-      return str;
-    }
+//     String toString() {
+//       String str;
+//       str += _driverName; str += "-"; str += _carName;
+//       return str;
+//     }
 
-    void setDriverName(String driverName) {
-      _driverName = driverName;
-    }
+//     void setDriverName(String driverName) {
+//       _driverName = driverName;
+//     }
 
-    String getDriverName() {
-      return _driverName;
-    }
+//     String getDriverName() {
+//       return _driverName;
+//     }
 
-    void setCarName(String carName) {
-      _carName = carName;
-    }
+//     void setCarName(String carName) {
+//       _carName = carName;
+//     }
 
-    String getCarName() {
-      return _carName;
-    }
-};
+//     String getCarName() {
+//       return _carName;
+//     }
+// };
 
 class RaceEvent {
   private:
@@ -155,14 +156,6 @@ class RaceEvent {
     RaceEvent &operator=(const RaceEvent &) = delete;
 
   public:
-    void begin() {
-      Serial.println("RaceEvent::begin()");
-    }
-
-    void doStuff() {
-      Serial.println("RaceEvent::doStuff()");
-    }
-
     String toString() {
       String str;
       for (int i=0 ; i < _carCount ; i++) {
@@ -185,6 +178,12 @@ class RaceEvent {
       _car[_carCount] = c;
       _carCount++;
       // Serial.print("_carCount incremented to: "); Serial.println(_carCount);
+    }
+
+    void addCars(Car car[NUMBER_OF_CARS]) {
+      for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
+        _car[i] = car[i];
+      }
     }
 
     // void setCar(int carIndex, Car c) {
@@ -267,7 +266,7 @@ class RaceEvent {
         } else {
           th = "th";
         }
-        str += "  ["; str += (i+1); str += th; str += "] car: ";
+        str += "  ["; str += (i+1); str += th; str += "] car["; str += _leaderboardCar[i]; str += "]: ";
         // str += (_leaderboardCar[i] + 1);
         str += (getCar(_leaderboardCar[i]).toString());
         str += ", average time: "; str += _leaderboardTime[i]; str += "\n";
@@ -317,10 +316,15 @@ class Heat {
       // for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
       //   str += "      _laneAssignment["; str += laneIndex; str += "]: \""; str += _laneAssignment[laneIndex]; str += "\" (carIndex)\n";
       // }
+      // for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
+      //   str += "      Lane "; str += (laneIndex + 1); str += ": \"";
+      //   str += (raceEvent.getCar(_laneAssignment[laneIndex])).toString();
+      //   str += "\" (car "; str += (_laneAssignment[laneIndex] + 1); str += ")\n";
+      // }
       for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
-        str += "      Lane "; str += (laneIndex + 1); str += ": \"";
-        str += (raceEvent.getCar(_laneAssignment[laneIndex])).toString();
-        str += " (car "; str += (_laneAssignment[laneIndex] + 1); str += ")\n";
+        str += "      Lane "; str += (laneIndex + 1); str += ": ";
+        // str += (raceEvent.getCar(_laneAssignment[laneIndex])).toString();
+        str += " car "; str += (_laneAssignment[laneIndex] + 1); str += "\n";
       }
       return str;
     }
@@ -390,10 +394,10 @@ class Schedule {
       _numberOfTimes = numberOfTimes;
       _laneUsageCount = laneUsageCount;
       _currentHeatNumber = 0;
-      Serial.println("Schedule constructor:");
-      Serial.print("  _laneUsageCount: "); Serial.print(_laneUsageCount);
-      Serial.print(", _numberOfCars: "); Serial.print(_numberOfCars);
-      Serial.print(", numberOfTimes: "); Serial.println(_numberOfTimes);
+      // Serial.println("Schedule constructor:");
+      // Serial.print("  _laneUsageCount: "); Serial.print(_laneUsageCount);
+      // Serial.print(", _numberOfCars: "); Serial.print(_numberOfCars);
+      // Serial.print(", numberOfTimes: "); Serial.println(_numberOfTimes);
     }
 
     String toString() {
@@ -451,9 +455,9 @@ class Schedule {
           if (thisHeatLaneCount == 0) { // then we actually need all the lanes, not 0 of them
             thisHeatLaneCount = _laneUsageCount;
           }
-          Serial.print("Last regular heat, setting thisHeatLaneCount: "); Serial.println(thisHeatLaneCount);
+          // Serial.print("Last regular heat, setting thisHeatLaneCount: "); Serial.println(thisHeatLaneCount);
         }
-        Serial.print("thisHeatLaneCount: "); Serial.println(thisHeatLaneCount);
+        // Serial.print("thisHeatLaneCount: "); Serial.println(thisHeatLaneCount);
         _heat[regularHeatIndex].setLaneUsageCount(thisHeatLaneCount);
         for (int laneIndex = 0 ; laneIndex < thisHeatLaneCount ; laneIndex++) {
           _heat[regularHeatIndex].setLaneAssignment(laneIndex, carIndex);
@@ -584,7 +588,8 @@ Schedule sched(min(LANES, NUMBER_OF_CARS), NUMBER_OF_CARS, NUMBER_OF_TIMES); // 
 /* Main */
 void setup() {
   Serial.begin(115200);
-  raceEvent.begin();
+
+  Serial.print("myCar: "); Serial.println(myCar.toString());
 
   sched.createRegularHeats();
   Serial.println(sched.toString());
@@ -702,7 +707,6 @@ void loop() {
       // what to do if the screen is touched?
       lastTouchMillis = now;
       Serial.println(raceEvent.leaderboardToString());
-      raceEvent.doStuff();
     }
 
     // printTouchToSerial(x, y, z);

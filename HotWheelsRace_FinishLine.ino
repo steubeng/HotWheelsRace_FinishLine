@@ -11,6 +11,7 @@
 #include <Constants.h>
 #include <RaceEvent.h>
 #include <Heat.h>
+#include <Schedule.h>
 
 
 TFT_eSPI tft = TFT_eSPI();
@@ -38,7 +39,7 @@ XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 // #define LANES 4
 // #define NUMBER_OF_CARS 7
 // #define NUMBER_OF_TIMES 3
-const int regularHeatCount = ceil(((NUMBER_OF_CARS * NUMBER_OF_TIMES) / float(min(LANES, NUMBER_OF_CARS))));
+// const int regularHeatCount = ceil(((NUMBER_OF_CARS * NUMBER_OF_TIMES) / float(min(LANES, NUMBER_OF_CARS))));
 
 // lane status types
 #define AT_GATE 0
@@ -174,109 +175,109 @@ void printTouchToDisplay(int touchX, int touchY, int touchZ) {
 //     }
 // };
 
-class Schedule {
-  private:
-    Heat _heat[regularHeatCount];
-    Heat _finals;
-    Heat _extra;
-    int _currentHeatNumber;
-    int _laneUsageCount;
-    int _numberOfCars;
-    int _numberOfTimes;
+// class Schedule {
+//   private:
+//     Heat _heat[regularHeatCount];
+//     Heat _finals;
+//     Heat _extra;
+//     int _currentHeatNumber;
+//     int _laneUsageCount;
+//     int _numberOfCars;
+//     int _numberOfTimes;
 
-  public:
-    Schedule() {
-      Serial.println("Schedule, default constructor called");
-    }
+//   public:
+//     Schedule() {
+//       Serial.println("Schedule, default constructor called");
+//     }
 
-    Schedule(int laneUsageCount, int numberOfCars, int numberOfTimes) {
-      _numberOfCars = numberOfCars;
-      _numberOfTimes = numberOfTimes;
-      _laneUsageCount = laneUsageCount;
-      _currentHeatNumber = 0;
-      // Serial.println("Schedule constructor:");
-      // Serial.print("  _laneUsageCount: "); Serial.print(_laneUsageCount);
-      // Serial.print(", _numberOfCars: "); Serial.print(_numberOfCars);
-      // Serial.print(", numberOfTimes: "); Serial.println(_numberOfTimes);
-    }
+//     Schedule(int laneUsageCount, int numberOfCars, int numberOfTimes) {
+//       _numberOfCars = numberOfCars;
+//       _numberOfTimes = numberOfTimes;
+//       _laneUsageCount = laneUsageCount;
+//       _currentHeatNumber = 0;
+//       // Serial.println("Schedule constructor:");
+//       // Serial.print("  _laneUsageCount: "); Serial.print(_laneUsageCount);
+//       // Serial.print(", _numberOfCars: "); Serial.print(_numberOfCars);
+//       // Serial.print(", numberOfTimes: "); Serial.println(_numberOfTimes);
+//     }
 
-    String toString() {
-      String str;
-      str += "Schedule:\n";
-      str += "  _currentHeatNumber: "; str += (_currentHeatNumber + 1); str += "\n";
-      str += "  _numberOfCars: "; str += _numberOfCars; str += "\n";
-      str += "  _numberOfTimes: "; str += _numberOfTimes; str += "\n";
-      str += "  _laneUsageCount: "; str += _laneUsageCount; str += "\n";
-      str += "  _heat array:\n";
-      for (int heatIndex = 0 ; heatIndex < regularHeatCount ; heatIndex++) {
-        str += _heat[heatIndex].toString();
-      }
-      return str;
-    }
+//     String toString() {
+//       String str;
+//       str += "Schedule:\n";
+//       str += "  _currentHeatNumber: "; str += (_currentHeatNumber + 1); str += "\n";
+//       str += "  _numberOfCars: "; str += _numberOfCars; str += "\n";
+//       str += "  _numberOfTimes: "; str += _numberOfTimes; str += "\n";
+//       str += "  _laneUsageCount: "; str += _laneUsageCount; str += "\n";
+//       str += "  _heat array:\n";
+//       for (int heatIndex = 0 ; heatIndex < regularHeatCount ; heatIndex++) {
+//         str += _heat[heatIndex].toString();
+//       }
+//       return str;
+//     }
 
-    Heat nextHeat() {
-      if (_currentHeatNumber < regularHeatCount) {
-        return _heat[_currentHeatNumber];
-      } else if (_currentHeatNumber == regularHeatCount) {
-        return _finals;
-      } else {
-        return _extra;
-      }
-    }
+//     Heat nextHeat() {
+//       if (_currentHeatNumber < regularHeatCount) {
+//         return _heat[_currentHeatNumber];
+//       } else if (_currentHeatNumber == regularHeatCount) {
+//         return _finals;
+//       } else {
+//         return _extra;
+//       }
+//     }
 
-    void setNumberOfCars(int numberOfCars) {
-      _numberOfCars = numberOfCars;
-    }
+//     void setNumberOfCars(int numberOfCars) {
+//       _numberOfCars = numberOfCars;
+//     }
 
-    int getNumberOfCars() {
-      return _numberOfCars;
-    }
+//     int getNumberOfCars() {
+//       return _numberOfCars;
+//     }
 
-    void setNumberOfTimes(int numberOfTimes) {
-      _numberOfTimes = numberOfTimes;
-    }
+//     void setNumberOfTimes(int numberOfTimes) {
+//       _numberOfTimes = numberOfTimes;
+//     }
 
-    int getNumberOfTimes() {
-      return _numberOfTimes;
-    }
+//     int getNumberOfTimes() {
+//       return _numberOfTimes;
+//     }
 
-    void setLaneUsageCount(int laneUsageCount) {
-      _laneUsageCount = laneUsageCount;
-    }
+//     void setLaneUsageCount(int laneUsageCount) {
+//       _laneUsageCount = laneUsageCount;
+//     }
 
-    void createRegularHeats() {
-      int carIndex = 0;
-      for (int regularHeatIndex = 0 ; regularHeatIndex < regularHeatCount ; regularHeatIndex++) {
-        _heat[regularHeatIndex].setHeatNumber(regularHeatIndex + 1);
-        _heat[regularHeatIndex].setHeatType(HEAT_TYPE_REGULAR);
-        int thisHeatLaneCount = _laneUsageCount;
-        if (regularHeatIndex == regularHeatCount - 1) { // this is the last REGULAR heat - there could be less used lanes than usual
-          thisHeatLaneCount = (NUMBER_OF_CARS * NUMBER_OF_TIMES) % _laneUsageCount;
-          if (thisHeatLaneCount == 0) { // then we actually need all the lanes, not 0 of them
-            thisHeatLaneCount = _laneUsageCount;
-          }
-          // Serial.print("Last regular heat, setting thisHeatLaneCount: "); Serial.println(thisHeatLaneCount);
-        }
-        // Serial.print("thisHeatLaneCount: "); Serial.println(thisHeatLaneCount);
-        _heat[regularHeatIndex].setLaneUsageCount(thisHeatLaneCount);
-        for (int laneIndex = 0 ; laneIndex < thisHeatLaneCount ; laneIndex++) {
-          _heat[regularHeatIndex].setLaneAssignment(laneIndex, carIndex);
-          carIndex++;
-          if (carIndex == _numberOfCars) {
-            carIndex = 0;
-          }
-        }
-      }
-    }
+//     void createRegularHeats() {
+//       int carIndex = 0;
+//       for (int regularHeatIndex = 0 ; regularHeatIndex < regularHeatCount ; regularHeatIndex++) {
+//         _heat[regularHeatIndex].setHeatNumber(regularHeatIndex + 1);
+//         _heat[regularHeatIndex].setHeatType(HEAT_TYPE_REGULAR);
+//         int thisHeatLaneCount = _laneUsageCount;
+//         if (regularHeatIndex == regularHeatCount - 1) { // this is the last REGULAR heat - there could be less used lanes than usual
+//           thisHeatLaneCount = (NUMBER_OF_CARS * NUMBER_OF_TIMES) % _laneUsageCount;
+//           if (thisHeatLaneCount == 0) { // then we actually need all the lanes, not 0 of them
+//             thisHeatLaneCount = _laneUsageCount;
+//           }
+//           // Serial.print("Last regular heat, setting thisHeatLaneCount: "); Serial.println(thisHeatLaneCount);
+//         }
+//         // Serial.print("thisHeatLaneCount: "); Serial.println(thisHeatLaneCount);
+//         _heat[regularHeatIndex].setLaneUsageCount(thisHeatLaneCount);
+//         for (int laneIndex = 0 ; laneIndex < thisHeatLaneCount ; laneIndex++) {
+//           _heat[regularHeatIndex].setLaneAssignment(laneIndex, carIndex);
+//           carIndex++;
+//           if (carIndex == _numberOfCars) {
+//             carIndex = 0;
+//           }
+//         }
+//       }
+//     }
 
-    void setFinals(Heat finals) {
-      // _finals = finals;
-    }
+//     void setFinals(Heat finals) {
+//       // _finals = finals;
+//     }
 
-    void setExtra(Heat extra) {
-      // _extra = extra;
-    }
-};
+//     void setExtra(Heat extra) {
+//       // _extra = extra;
+//     }
+// };
 
 class Environment {
   private:

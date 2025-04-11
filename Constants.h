@@ -9,4 +9,6 @@
 #define HEAT_TYPE_FINALS 1
 #define HEAT_TYPE_EXTRA 2
 
+const int regularHeatCount = ceil(((NUMBER_OF_CARS * NUMBER_OF_TIMES) / float(min(LANES, NUMBER_OF_CARS))));
+
 #endif

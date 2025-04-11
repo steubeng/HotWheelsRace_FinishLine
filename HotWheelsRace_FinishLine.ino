@@ -8,6 +8,9 @@
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Car.h>
+#include <Constants.h>
+#include <RaceEvent.h>
+
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -32,8 +35,8 @@ XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 #define REPEATED_TOUCH_TOLERANCE 1000
 
 #define LANES 4
-#define NUMBER_OF_CARS 7
-#define NUMBER_OF_TIMES 3
+// #define NUMBER_OF_CARS 7
+// #define NUMBER_OF_TIMES 3
 const int regularHeatCount = ceil(((NUMBER_OF_CARS * NUMBER_OF_TIMES) / float(min(LANES, NUMBER_OF_CARS))));
 
 // heat types
@@ -126,167 +129,167 @@ void printTouchToDisplay(int touchX, int touchY, int touchZ) {
 //     }
 // };
 
-class RaceEvent {
-  private:
-    // RaceEvent() = default; // Make constructor private
+// class RaceEvent {
+//   private:
+//     // RaceEvent() = default; // Make constructor private
 
-    Car _car[NUMBER_OF_CARS];
-    int _leaderboardCar[NUMBER_OF_CARS];
-    float _leaderboardTime[NUMBER_OF_CARS];
-    float _elapsedTime[NUMBER_OF_CARS][NUMBER_OF_TIMES]; // seconds
-    float _average[NUMBER_OF_CARS]; // seconds
-    int _carCount;
-    int _elapsedTimeCount[NUMBER_OF_CARS];
+//     Car _car[NUMBER_OF_CARS];
+//     int _leaderboardCar[NUMBER_OF_CARS];
+//     float _leaderboardTime[NUMBER_OF_CARS];
+//     float _elapsedTime[NUMBER_OF_CARS][NUMBER_OF_TIMES]; // seconds
+//     float _average[NUMBER_OF_CARS]; // seconds
+//     int _carCount;
+//     int _elapsedTimeCount[NUMBER_OF_CARS];
 
-    RaceEvent() {
-      _carCount = 0;
-      for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
-        _elapsedTimeCount[i] = 0;
-        _average[i] = 0;
-      }
-    }
+//     RaceEvent() {
+//       _carCount = 0;
+//       for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
+//         _elapsedTimeCount[i] = 0;
+//         _average[i] = 0;
+//       }
+//     }
 
-  public:
-    static RaceEvent &getInstance() {
-      static RaceEvent instance;
-      return instance;
-    }
+//   public:
+//     static RaceEvent &getInstance() {
+//       static RaceEvent instance;
+//       return instance;
+//     }
 
-    RaceEvent(const RaceEvent &) = delete; // no copying
-    RaceEvent &operator=(const RaceEvent &) = delete;
+//     RaceEvent(const RaceEvent &) = delete; // no copying
+//     RaceEvent &operator=(const RaceEvent &) = delete;
 
-  public:
-    String toString() {
-      String str;
-      for (int i=0 ; i < _carCount ; i++) {
-        str += "car "; str += (i+1); str += "  "; str += _car[i].toString(); str += ", ";
-        str += _elapsedTimeCount[i]; str += " time records: ";
-        for (int j=0 ; j < _elapsedTimeCount[i] ; j++) {
-          str += _elapsedTime[i][j]; str += " ";
-        }
-        str += "--> "; str += _average[i]; str += " (average time)\n";
-      }
-      return str;
-    }
+//   public:
+//     String toString() {
+//       String str;
+//       for (int i=0 ; i < _carCount ; i++) {
+//         str += "car "; str += (i+1); str += "  "; str += _car[i].toString(); str += ", ";
+//         str += _elapsedTimeCount[i]; str += " time records: ";
+//         for (int j=0 ; j < _elapsedTimeCount[i] ; j++) {
+//           str += _elapsedTime[i][j]; str += " ";
+//         }
+//         str += "--> "; str += _average[i]; str += " (average time)\n";
+//       }
+//       return str;
+//     }
 
-    void addCar(Car c) {
-      // Serial.print("addCar: _carCount: "); Serial.print(_carCount); Serial.print(", NUMBER_OF_CARS: "); Serial.println(NUMBER_OF_CARS);
-      if (_carCount == NUMBER_OF_CARS) {
-        Serial.println("ERROR: carCount exceeds NUMBER_OF_RACERS");
-        return;
-      }
-      _car[_carCount] = c;
-      _carCount++;
-      // Serial.print("_carCount incremented to: "); Serial.println(_carCount);
-    }
+//     void addCar(Car c) {
+//       // Serial.print("addCar: _carCount: "); Serial.print(_carCount); Serial.print(", NUMBER_OF_CARS: "); Serial.println(NUMBER_OF_CARS);
+//       if (_carCount == NUMBER_OF_CARS) {
+//         Serial.println("ERROR: carCount exceeds NUMBER_OF_RACERS");
+//         return;
+//       }
+//       _car[_carCount] = c;
+//       _carCount++;
+//       // Serial.print("_carCount incremented to: "); Serial.println(_carCount);
+//     }
 
-    void addCars(Car car[NUMBER_OF_CARS]) {
-      for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
-        _car[i] = car[i];
-      }
-    }
+//     void addCars(Car car[NUMBER_OF_CARS]) {
+//       for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
+//         _car[i] = car[i];
+//       }
+//     }
 
-    // void setCar(int carIndex, Car c) {
-    //   if (index < _carCount) {
-    //     _car[carIndex] = c;
-    //   }
-    // }
+//     // void setCar(int carIndex, Car c) {
+//     //   if (index < _carCount) {
+//     //     _car[carIndex] = c;
+//     //   }
+//     // }
 
-    Car getCar(int index) {
-      if (index < NUMBER_OF_CARS) {
-        return _car[index];
-      }
-    }
+//     Car getCar(int index) {
+//       if (index < NUMBER_OF_CARS) {
+//         return _car[index];
+//       }
+//     }
 
-    int getCarCount() {
-      return _carCount;
-    }
+//     int getCarCount() {
+//       return _carCount;
+//     }
 
-    void addElapsedTime(int carIndex, float seconds) {
-      _elapsedTime[carIndex][_elapsedTimeCount[carIndex]] = seconds;
-      _elapsedTimeCount[carIndex]++;
-    }
+//     void addElapsedTime(int carIndex, float seconds) {
+//       _elapsedTime[carIndex][_elapsedTimeCount[carIndex]] = seconds;
+//       _elapsedTimeCount[carIndex]++;
+//     }
 
-    float getElapsedTime(int carIndex, int elapsedTimeIndex) {
-      if ((carIndex < NUMBER_OF_CARS) && (elapsedTimeIndex < _elapsedTimeCount[carIndex])) {
-        return _elapsedTime[carIndex][elapsedTimeIndex];
-      } else {
-        Serial.println("ERROR: second index to _elapsedTime exceeded expected value");
-        return 0;
-      }
-    }
+//     float getElapsedTime(int carIndex, int elapsedTimeIndex) {
+//       if ((carIndex < NUMBER_OF_CARS) && (elapsedTimeIndex < _elapsedTimeCount[carIndex])) {
+//         return _elapsedTime[carIndex][elapsedTimeIndex];
+//       } else {
+//         Serial.println("ERROR: second index to _elapsedTime exceeded expected value");
+//         return 0;
+//       }
+//     }
 
-    int getElapsedTimeCount(int carIndex) {
-      return _elapsedTimeCount[carIndex];
-    }
+//     int getElapsedTimeCount(int carIndex) {
+//       return _elapsedTimeCount[carIndex];
+//     }
 
-    void calculateAverages() {
-      for (int carIndex = 0 ; carIndex < NUMBER_OF_CARS ; carIndex++) {
-        float sum = 0;
-        for (int elapsedTimeIndex = 0 ; elapsedTimeIndex < _elapsedTimeCount[carIndex] ; elapsedTimeIndex++) {
-          sum += _elapsedTime[carIndex][elapsedTimeIndex];
-        }
-        _average[carIndex] = sum / _elapsedTimeCount[carIndex];
-        // Serial.print("averages: carIndex: "); Serial.print(carIndex);
-        // Serial.print(", sum: "); Serial.print("sum");
-        // Serial.print(", _elapsedTimeCount["); Serial.print(carIndex); Serial.print("]: "); Serial.print(_elapsedTimeCount[carIndex]);
-        // Serial.print(", average: "); Serial.println(_average[carIndex]);
-      }
-    }
+//     void calculateAverages() {
+//       for (int carIndex = 0 ; carIndex < NUMBER_OF_CARS ; carIndex++) {
+//         float sum = 0;
+//         for (int elapsedTimeIndex = 0 ; elapsedTimeIndex < _elapsedTimeCount[carIndex] ; elapsedTimeIndex++) {
+//           sum += _elapsedTime[carIndex][elapsedTimeIndex];
+//         }
+//         _average[carIndex] = sum / _elapsedTimeCount[carIndex];
+//         // Serial.print("averages: carIndex: "); Serial.print(carIndex);
+//         // Serial.print(", sum: "); Serial.print("sum");
+//         // Serial.print(", _elapsedTimeCount["); Serial.print(carIndex); Serial.print("]: "); Serial.print(_elapsedTimeCount[carIndex]);
+//         // Serial.print(", average: "); Serial.println(_average[carIndex]);
+//       }
+//     }
 
-    void generateLeaderboard() {
-      for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
-        _leaderboardCar[i] = i;
-        _leaderboardTime[i] = _average[i];
-      }
-      for (int i=0 ; i < NUMBER_OF_CARS - 1 ; i++) {
-        for (int j=0 ; j < NUMBER_OF_CARS - i - 1 ; j++) {
-          if (_leaderboardTime[j] > _leaderboardTime[j+1]) {
-            float tempTime = _leaderboardTime[j];
-            _leaderboardTime[j] = _leaderboardTime[j+1];
-            _leaderboardTime[j+1] = tempTime;
-            int tempIndex = _leaderboardCar[j];
-            _leaderboardCar[j] = _leaderboardCar[j+1];
-            _leaderboardCar[j+1] = tempIndex;
-          }
-        }
-      }
-    }
+//     void generateLeaderboard() {
+//       for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
+//         _leaderboardCar[i] = i;
+//         _leaderboardTime[i] = _average[i];
+//       }
+//       for (int i=0 ; i < NUMBER_OF_CARS - 1 ; i++) {
+//         for (int j=0 ; j < NUMBER_OF_CARS - i - 1 ; j++) {
+//           if (_leaderboardTime[j] > _leaderboardTime[j+1]) {
+//             float tempTime = _leaderboardTime[j];
+//             _leaderboardTime[j] = _leaderboardTime[j+1];
+//             _leaderboardTime[j+1] = tempTime;
+//             int tempIndex = _leaderboardCar[j];
+//             _leaderboardCar[j] = _leaderboardCar[j+1];
+//             _leaderboardCar[j+1] = tempIndex;
+//           }
+//         }
+//       }
+//     }
 
-    String leaderboardToString() {
-      String str = "Leaderboard:\n";
-      for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
-        String th;
-        if (((i+1) % 10 == 1) && (i != 10)) {
-          th = "st";
-        } else if (((i+1) % 10 == 2) && (i!= 11)) {
-          th = "nd";
-        } else if (((i+1) % 10 == 3) && (i!= 12)) {
-          th = "rd";
-        } else {
-          th = "th";
-        }
-        str += "  ["; str += (i+1); str += th; str += "] car["; str += _leaderboardCar[i]; str += "]: ";
-        // str += (_leaderboardCar[i] + 1);
-        str += (getCar(_leaderboardCar[i]).toString());
-        str += ", average time: "; str += _leaderboardTime[i]; str += "\n";
-      }
-      return str;
-    }
+//     String leaderboardToString() {
+//       String str = "Leaderboard:\n";
+//       for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
+//         String th;
+//         if (((i+1) % 10 == 1) && (i != 10)) {
+//           th = "st";
+//         } else if (((i+1) % 10 == 2) && (i!= 11)) {
+//           th = "nd";
+//         } else if (((i+1) % 10 == 3) && (i!= 12)) {
+//           th = "rd";
+//         } else {
+//           th = "th";
+//         }
+//         str += "  ["; str += (i+1); str += th; str += "] car["; str += _leaderboardCar[i]; str += "]: ";
+//         // str += (_leaderboardCar[i] + 1);
+//         str += (getCar(_leaderboardCar[i]).toString());
+//         str += ", average time: "; str += _leaderboardTime[i]; str += "\n";
+//       }
+//       return str;
+//     }
 
-    void createFinalHeat() {
-      // Heat finals(regularHeatCount, min(NUMBER_OF_CARS, LANES), HEAT_TYPE_FINALS);
-      // return finals;
-    }
+//     void createFinalHeat() {
+//       // Heat finals(regularHeatCount, min(NUMBER_OF_CARS, LANES), HEAT_TYPE_FINALS);
+//       // return finals;
+//     }
 
-    void  createExtraHeat() {
-      // Heat extra(regularHeatCount + 1, LANES, HEAT_TYPE_EXTRA);
-      // for (int lane = 0 ; lane < LANES ; lane++) {
-      //   extra.setLaneAssignment(lane, Car("Anyone", "Any Car"));
-      // }
-      // return extra;
-    }
-};
+//     void  createExtraHeat() {
+//       // Heat extra(regularHeatCount + 1, LANES, HEAT_TYPE_EXTRA);
+//       // for (int lane = 0 ; lane < LANES ; lane++) {
+//       //   extra.setLaneAssignment(lane, Car("Anyone", "Any Car"));
+//       // }
+//       // return extra;
+//     }
+// };
 
 class Heat {
   private:
@@ -588,8 +591,6 @@ Schedule sched(min(LANES, NUMBER_OF_CARS), NUMBER_OF_CARS, NUMBER_OF_TIMES); // 
 /* Main */
 void setup() {
   Serial.begin(115200);
-
-  Serial.print("myCar: "); Serial.println(myCar.toString());
 
   sched.createRegularHeats();
   Serial.println(sched.toString());

@@ -33,6 +33,7 @@ String Schedule::toString() {
 }
 
 Heat Schedule::nextHeat() {
+  // developer is responsible for calling incrementCurrentHeatNumber() separately
   if (_currentHeatNumber < regularHeatCount) {
     return _heat[_currentHeatNumber];
   } else if (_currentHeatNumber == regularHeatCount) {
@@ -88,9 +89,27 @@ void Schedule::createRegularHeats() {
 }
 
 void Schedule::setFinals(Heat finals) {
-  // _finals = finals;
+  _finals.setHeatNumber(finals.getHeatNumber());
+  _finals.setLaneUsageCount(finals.getLaneUsageCount());
+  _finals.setHeatType(finals.getHeatType());
+  for (int i=0 ; i < LANES ; i++) {
+    _finals.setLaneAssignment(i, finals.getLaneAssignment(i));
+  }
 }
 
 void Schedule::setExtra(Heat extra) {
-  // _extra = extra;
+  _extra.setHeatNumber(extra.getHeatNumber());
+  _extra.setLaneUsageCount(extra.getLaneUsageCount());
+  _extra.setHeatType(extra.getHeatType());
+  for (int i=0 ; i < LANES ; i++) {
+    _extra.setLaneAssignment(i, extra.getLaneAssignment(i));
+  }
+}
+
+void Schedule::incrementCurrentHeatNumber() {
+  _currentHeatNumber++;
+}
+
+int Schedule::getCurrentHeatNumber() {
+  return _currentHeatNumber;
 }

@@ -28,6 +28,8 @@ class Schedule {
     void createRegularHeats();
     void setFinals(Heat finals);
     void setExtra(Heat extra);
+    void incrementCurrentHeatNumber();
+    int getCurrentHeatNumber();
 };
 
 #endif

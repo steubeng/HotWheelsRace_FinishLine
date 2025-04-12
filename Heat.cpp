@@ -2,6 +2,7 @@
 #include "Constants.h"
 #include "Heat.h"
 
+
 Heat::Heat() {
   Heat(-1, LANES, HEAT_TYPE_REGULAR);
 }

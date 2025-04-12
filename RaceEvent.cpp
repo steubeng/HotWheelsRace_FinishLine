@@ -24,7 +24,7 @@ String RaceEvent::toString() {
   String str;
   char buffer[16];
   for (int i=0 ; i < _carCount ; i++) {
-    str += "car "; str += (i+1); str += "  "; str += _car[i].toString(); str += ", ";
+    str += "  car "; str += (i+1); str += "  "; str += _car[i].toString(); str += ", ";
     str += _elapsedTimeCount[i]; str += " time records: ";
     for (int j=0 ; j < _elapsedTimeCount[i] ; j++) {
       sprintf(buffer, "%1.3f", _elapsedTime[i][j]);
@@ -122,7 +122,7 @@ void RaceEvent::generateLeaderboard() {
 
 String RaceEvent::leaderboardToString() {
   String str = "Leaderboard:\n";
-  char buffer[16];
+  char buffer[64];
   for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
     String th;
     if (((i+1) % 10 == 1) && (i != 10)) {
@@ -134,11 +134,16 @@ String RaceEvent::leaderboardToString() {
     } else {
       th = "th";
     }
-    str += "  ["; str += (i+1); str += th; str += "] car "; str += _leaderboardCar[i]+1; str += ": ";
+    // str += "  ["; str += (i+1); str += th; str += "] car "; str += _leaderboardCar[i]+1; str += ": ";
+    str += "  ["; str += (i+1); str += th; str += "]: ";
+    sprintf(buffer, "%6.3f", _leaderboardTime[i]);
+    str += buffer;
+    str += " "; str += getCar(_leaderboardCar[i]).toString(); str += "\n";
+
     // str += (_leaderboardCar[i] + 1);
-    str += (getCar(_leaderboardCar[i]).toString());
-    sprintf(buffer, "%1.3f", _leaderboardTime[i]);
-    str += ", average time: "; str += buffer; str += "\n";
+    // str += (getCar(_leaderboardCar[i]).toString());
+    // sprintf(buffer, "%1.3f", _leaderboardTime[i]);
+    // str += ", average time: "; str += buffer; str += "\n";
   }
   return str;
 }

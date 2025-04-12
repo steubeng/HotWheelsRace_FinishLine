@@ -130,13 +130,17 @@ public:
       scoresReported = false;
       for (int i=0 ; i < LANES ; i++) {
         laneStatus[i] = RACING;
-        digitalWrite(finishLineLED[i], LOW);
       }
+      Serial.println("RACE STARTED!!!");
+      Serial.println("Watching Finish Line:");
     } else if (strcmp(buffer, "START_GATE_CLOSED") == 0) {
       raceStatus = ALL_AT_GATE;
       finishedLaneCount = 0;
       digitalWrite(readyLED, HIGH);
       digitalWrite(raceActiveLED, LOW);
+      for (int i=0 ; i < LANES ; i++) {
+        digitalWrite(finishLineLED[i], LOW);
+      }
       Serial.println("############################################"); Serial.println(thisHeat.toString());
     }
   }
@@ -377,7 +381,7 @@ void loop() {
         finishedLaneCount++;
         float elapsedTime = (millis() - startTimeMillis) / 1000.0;
         raceEvent.addElapsedTime(thisHeat.getLaneAssignment(i), elapsedTime);
-        Serial.print("Lane "); Serial.print(i+1); Serial.print(": ");
+        Serial.print("  Lane "); Serial.print(i+1); Serial.print(": ");
         Serial.print(raceEvent.getCar(thisHeat.getLaneAssignment(i)).toString());
         char buffer[16];
         sprintf(buffer, "%1.3f", elapsedTime);
@@ -390,6 +394,8 @@ void loop() {
     }
   } else if ((raceStatus == ALL_FINISHED) && (scoresReported == false)) {
     raceEvent.calculateAverages();
+    Serial.println();
+    Serial.println("Running Average Elapsed Times:");
     Serial.println(raceEvent.toString());
     raceEvent.generateLeaderboard();
     Serial.println(raceEvent.leaderboardToString());

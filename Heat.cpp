@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "Constants.h"
 #include "Heat.h"
+#include "RaceEvent.h"
 
 
 Heat::Heat() {
@@ -15,10 +16,10 @@ Heat::Heat(int heatNumber, int laneUsageCount, int heatType) {
 
 String Heat::toString() {
   String str;
-  str += "    _heatNumber: "; str += _heatNumber; str += "\n";
-  str += "    _laneUsageCount: "; str += _laneUsageCount; str += "\n";
-  str += "    _heatType: "; str += getHeatType(_heatType); str += "\n";
-  str += "    _laneAssignment:\n";
+  str += "  heatNumber: "; str += _heatNumber; str += "\n";
+  str += "    laneUsageCount: "; str += _laneUsageCount; str += "\n";
+  str += "    heatType: "; str += getHeatType(_heatType); str += "\n";
+  str += "    laneAssignment:\n";
   // for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
   //   str += "      _laneAssignment["; str += laneIndex; str += "]: \""; str += _laneAssignment[laneIndex]; str += "\" (carIndex)\n";
   // }
@@ -30,7 +31,8 @@ String Heat::toString() {
   for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
     str += "      Lane "; str += (laneIndex + 1); str += ": ";
     // str += (raceEvent.getCar(_laneAssignment[laneIndex])).toString();
-    str += " car "; str += (_laneAssignment[laneIndex] + 1); str += "\n";
+    // str += " car "; str += (_laneAssignment[laneIndex] + 1); str += "\n";
+    str += (raceEvent.getCar(_laneAssignment[laneIndex])).toString(); str += "\n";
   }
   return str;
 }

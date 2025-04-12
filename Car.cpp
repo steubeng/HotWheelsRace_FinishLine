@@ -17,7 +17,11 @@ Car::Car(String driverName, String carName) {
 
 String Car::toString() {
   String str;
-  str += _driverName; str += "-"; str += _carName;
+  if ((_driverName == "") && (_carName == "")) {
+    str += "<open>"; // likely for the extra heats
+  } else {
+    str += _driverName; str += "-"; str += _carName;
+  }
   return str;
 }
 

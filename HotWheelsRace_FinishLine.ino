@@ -42,7 +42,7 @@ XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 
 // race status types
 #define ALL_AT_GATE 0
-#define ALL_RACING 1
+#define STILL_RACING 1
 #define ALL_FINISHED 2
 
 int breakBeamPin[LANES] = {6, 7, 18, 16};
@@ -123,7 +123,7 @@ public:
 
     // if ((strcmp(buffer, "START_GATE_OPENED") == 0) && (allFinished == false)) {
     if (strcmp(buffer, "START_GATE_OPENED") == 0) {
-      raceStatus = ALL_RACING;
+      raceStatus = STILL_RACING;
       startTimeMillis = millis();
       digitalWrite(readyLED, LOW);
       digitalWrite(raceActiveLED, HIGH);
@@ -210,8 +210,8 @@ void resetHeat() {
 }
 
 // int checkFinishedStatus(int laneUsageCount, int currentStatus) {
-//   if (currentStatus == ALL_RACING) {
-//     Serial.print("checkFinishedStatus, currentStatus: ALL_RACING");
+//   if (currentStatus == STILL_RACING) {
+//     Serial.print("checkFinishedStatus, currentStatus: STILL_RACING");
 //     int finishedLaneCount = 0;
 //     for (int i=0 ; i < laneUsageCount ; i++) {
 //       if (laneStatus[i] == FINISHED) {
@@ -242,8 +242,8 @@ void setup() {
   Serial.begin(115200);
 
   sched.createRegularHeats();
-  sched.setFinals(Heat(regularHeatCount, LANES, HEAT_TYPE_FINALS));
-  sched.setExtra(Heat(regularHeatCount+1, LANES, HEAT_TYPE_EXTRA));
+  // sched.setFinals(Heat(regularHeatCount, LANES, HEAT_TYPE_FINALS));
+  // sched.setExtra(Heat(regularHeatCount+1, LANES, HEAT_TYPE_EXTRA));
   // Serial.println(sched.toString());
 
   raceEvent.addCar(Car("Happy", "Elated"));      // 0
@@ -370,19 +370,26 @@ void loop() {
     thisHeat.setHeatNumber(nextHeat.getHeatNumber());
     thisHeat.setLaneUsageCount(nextHeat.getLaneUsageCount());
     thisHeat.setHeatType(nextHeat.getHeatType());
+    // Serial.print("nextHeat.getHeatType(): ");Serial.println(nextHeat.getHeatType());
     for (int i=0 ; i < LANES ; i++) {
       thisHeat.setLaneAssignment(i, nextHeat.getLaneAssignment(i));
     }
     haveThisHeat = true;
-  } else if (raceStatus == ALL_RACING) {
+  } else if (raceStatus == STILL_RACING) {
     for (int i=0 ; i < thisHeat.getLaneUsageCount() ; i++) {
       if ((analogRead(breakBeamPin[i]) < 1000) && (laneStatus[i] == RACING)) { // someone crossed the finish line
         laneStatus[i] = FINISHED;
         finishedLaneCount++;
         float elapsedTime = (millis() - startTimeMillis) / 1000.0;
-        raceEvent.addElapsedTime(thisHeat.getLaneAssignment(i), elapsedTime);
+        if (thisHeat.getHeatType() == HEAT_TYPE_REGULAR) {
+          raceEvent.addElapsedTime(thisHeat.getLaneAssignment(i), elapsedTime);
+        }
         Serial.print("  Lane "); Serial.print(i+1); Serial.print(": ");
-        Serial.print(raceEvent.getCar(thisHeat.getLaneAssignment(i)).toString());
+        if ((thisHeat.getHeatType() == HEAT_TYPE_REGULAR) || (thisHeat.getHeatType() == HEAT_TYPE_FINALS)) {
+          Serial.print(raceEvent.getCar(thisHeat.getLaneAssignment(i)).toString());
+        } else {
+          Serial.print("<open>");
+        }
         char buffer[16];
         sprintf(buffer, "%1.3f", elapsedTime);
         Serial.print(", time: "); Serial.println(buffer);
@@ -391,14 +398,43 @@ void loop() {
     }
     if (finishedLaneCount == thisHeat.getLaneUsageCount()) {
       raceStatus = ALL_FINISHED;
+      Serial.println("RACE FINISHED!!!");
     }
   } else if ((raceStatus == ALL_FINISHED) && (scoresReported == false)) {
-    raceEvent.calculateAverages();
-    Serial.println();
-    Serial.println("Running Average Elapsed Times:");
-    Serial.println(raceEvent.toString());
-    raceEvent.generateLeaderboard();
-    Serial.println(raceEvent.leaderboardToString());
+    if (thisHeat.getHeatType() == HEAT_TYPE_REGULAR) {
+      raceEvent.calculateAverages();
+      Serial.println();
+      Serial.println("Running Average of Elapsed Times from Regular Heats:");
+      Serial.println(raceEvent.toString());
+      raceEvent.generateLeaderboard();
+    }
+
+
+    // TODO: set the finals heat here.
+    if (sched.getCurrentHeatNumber() == regularHeatCount - 1) { // last regular heat just ended, build finals
+      Heat finals;
+      finals.setHeatNumber(regularHeatCount+1);
+      finals.setLaneUsageCount(min(LANES, NUMBER_OF_CARS));
+      finals.setHeatType(HEAT_TYPE_FINALS);
+      for (int i=0 ; i < min(LANES, NUMBER_OF_CARS) ; i++) {
+        finals.setLaneAssignment(i, raceEvent.getLeaderboardCar(i));
+      }
+      sched.setFinals(finals);
+
+      Heat extra;
+      extra.setHeatNumber(regularHeatCount+2);
+      extra.setLaneUsageCount(min(LANES, NUMBER_OF_CARS));
+      extra.setHeatType(HEAT_TYPE_EXTRA);
+      for (int i=0 ; i < LANES ; i++) {
+        // extra.setLaneAssignment(i, raceEvent.getLeaderboardCar(i));
+        extra.setLaneAssignment(i, -1);
+      }
+      sched.setExtra(extra);
+    }
+
+    if (thisHeat.getHeatType() == HEAT_TYPE_REGULAR) {
+      Serial.println(raceEvent.leaderboardToString());
+    }
     raceStatus = ALL_AT_GATE;
     for (int i=0 ; i < thisHeat.getLaneUsageCount() ; i++) {
       laneStatus[i] = AT_GATE;

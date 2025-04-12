@@ -24,14 +24,21 @@ String RaceEvent::toString() {
   String str;
   char buffer[16];
   for (int i=0 ; i < _carCount ; i++) {
-    str += "  car "; str += (i+1); str += "  "; str += _car[i].toString(); str += ", ";
-    str += _elapsedTimeCount[i]; str += " time records: ";
-    for (int j=0 ; j < _elapsedTimeCount[i] ; j++) {
-      sprintf(buffer, "%1.3f", _elapsedTime[i][j]);
-      str += buffer; str += " ";
+    str += "  Car "; str += (i+1); str += "  "; str += _car[i].toString(); str += ", ";
+    str += _elapsedTimeCount[i]; str += " time records";
+
+    if (_elapsedTimeCount[i] > 0) {
+      str += ": ";
+      for (int j=0 ; j < _elapsedTimeCount[i] ; j++) {
+        sprintf(buffer, "%1.3f", _elapsedTime[i][j]);
+        str += buffer; str += " ";
+      }
+      sprintf(buffer, "%1.3f", _average[i]);
+      str += "--> "; str += buffer; str += " (average time)\n";
+    } else {
+      str += ".\n";
     }
-    sprintf(buffer, "%1.3f", _average[i]);
-    str += "--> "; str += buffer; str += " (average time)\n";
+
   }
   return str;
 }
@@ -52,12 +59,6 @@ void RaceEvent::addCars(Car car[NUMBER_OF_CARS]) {
     _car[i] = car[i];
   }
 }
-
-// void setCar(int carIndex, Car c) {
-//   if (index < _carCount) {
-//     _car[carIndex] = c;
-//   }
-// }
 
 Car RaceEvent::getCar(int index) {
   if (index < NUMBER_OF_CARS) {
@@ -94,10 +95,6 @@ void RaceEvent::calculateAverages() {
       sum += _elapsedTime[carIndex][elapsedTimeIndex];
     }
     _average[carIndex] = sum / _elapsedTimeCount[carIndex];
-    // Serial.print("averages: carIndex: "); Serial.print(carIndex);
-    // Serial.print(", sum: "); Serial.print("sum");
-    // Serial.print(", _elapsedTimeCount["); Serial.print(carIndex); Serial.print("]: "); Serial.print(_elapsedTimeCount[carIndex]);
-    // Serial.print(", average: "); Serial.println(_average[carIndex]);
   }
 }
 
@@ -120,6 +117,14 @@ void RaceEvent::generateLeaderboard() {
   }
 }
 
+float RaceEvent::getLeaderboardTime(int index) {
+  return _leaderboardTime[index];
+}
+
+int RaceEvent::getLeaderboardCar(int index) {
+  return _leaderboardCar[index];
+}
+
 String RaceEvent::leaderboardToString() {
   String str = "Leaderboard:\n";
   char buffer[64];
@@ -134,29 +139,14 @@ String RaceEvent::leaderboardToString() {
     } else {
       th = "th";
     }
-    // str += "  ["; str += (i+1); str += th; str += "] car "; str += _leaderboardCar[i]+1; str += ": ";
     str += "  ["; str += (i+1); str += th; str += "]: ";
-    sprintf(buffer, "%6.3f", _leaderboardTime[i]);
+    if (_leaderboardTime[i] >= 0) {
+      sprintf(buffer, "%6.3f", _leaderboardTime[i]);
+    } else {
+      sprintf(buffer, "------");
+    }
     str += buffer;
     str += " "; str += getCar(_leaderboardCar[i]).toString(); str += "\n";
-
-    // str += (_leaderboardCar[i] + 1);
-    // str += (getCar(_leaderboardCar[i]).toString());
-    // sprintf(buffer, "%1.3f", _leaderboardTime[i]);
-    // str += ", average time: "; str += buffer; str += "\n";
   }
   return str;
-}
-
-void RaceEvent::createFinalHeat() {
-  // Heat finals(regularHeatCount, min(NUMBER_OF_CARS, LANES), HEAT_TYPE_FINALS);
-  // return finals;
-}
-
-void  RaceEvent::createExtraHeat() {
-  // Heat extra(regularHeatCount + 1, LANES, HEAT_TYPE_EXTRA);
-  // for (int lane = 0 ; lane < LANES ; lane++) {
-  //   extra.setLaneAssignment(lane, Car("Anyone", "Any Car"));
-  // }
-  // return extra;
 }

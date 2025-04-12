@@ -30,9 +30,9 @@ class RaceEvent {
     int getElapsedTimeCount(int carIndex);
     void calculateAverages();
     void generateLeaderboard();
+    float getLeaderboardTime(int index);
+    int getLeaderboardCar(int index);
     String leaderboardToString();
-    void createFinalHeat();
-    void  createExtraHeat();
 };
 
 #endif

@@ -16,7 +16,7 @@ class Heat {
     Heat();
     Heat(int heatNumber, int laneUsageCount, int heatType);
     String toString();
-    String getHeatType(int type);
+    String getHeatTypeString();
     void setHeatNumber(int heatNumber);
     int getHeatNumber();
     void setLaneUsageCount(int laneUsageCount);

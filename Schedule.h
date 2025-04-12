@@ -7,7 +7,7 @@
 
 class Schedule {
   private:
-    Heat _heat[regularHeatCount];
+    Heat _heat[regularHeatCount + 2];
     Heat _finals;
     Heat _extra;
     int _currentHeatNumber;

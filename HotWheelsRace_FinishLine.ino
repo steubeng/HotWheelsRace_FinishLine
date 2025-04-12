@@ -206,7 +206,9 @@ void resetHeat() {
     laneStatus[i] = AT_GATE;
   }
   digitalWrite(raceActiveLED, LOW);
-  digitalWrite(readyLED, HIGH);
+  if (commEstablished) {
+    digitalWrite(readyLED, HIGH);
+  }
 }
 
 // int checkFinishedStatus(int laneUsageCount, int currentStatus) {

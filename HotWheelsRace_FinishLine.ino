@@ -125,7 +125,7 @@ void displayHeatNumber() {
   tft.drawString(buffer, 5, 70, FONT_SIZE);
   if (heatNumber < regularHeatCount) {
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft.drawString("Qualifing Heat", 140, 70, FONT_SIZE);
+    tft.drawString("Qualifying Heat", 140, 70, FONT_SIZE);
     tft.setTextColor(TFT_SKYBLUE, TFT_BLACK);
   } else if (heatNumber == regularHeatCount) {
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);

@@ -12,10 +12,6 @@ Schedule::Schedule(int laneUsageCount, int numberOfCars, int numberOfTimes) {
   _numberOfTimes = numberOfTimes;
   _laneUsageCount = laneUsageCount;
   _currentHeatNumber = 0;
-  // Serial.println("Schedule constructor:");
-  // Serial.print("  _laneUsageCount: "); Serial.print(_laneUsageCount);
-  // Serial.print(", _numberOfCars: "); Serial.print(_numberOfCars);
-  // Serial.print(", numberOfTimes: "); Serial.println(_numberOfTimes);
 }
 
 String Schedule::toString() {
@@ -34,16 +30,11 @@ String Schedule::toString() {
 
 Heat Schedule::nextHeat() {
   // developer is responsible for calling incrementCurrentHeatNumber() separately
-  // Serial.print("nextHeat(), _currentHeatNumber: "); Serial.print(_currentHeatNumber);
-  // Serial.print(", regularHeatCount: "); Serial.print(regularHeatCount);
   if (_currentHeatNumber < regularHeatCount) {
-    // Serial.print(", returning regular _heat["); Serial.print(_currentHeatNumber); Serial.println("]");
     return _heat[_currentHeatNumber];
   } else if (_currentHeatNumber == regularHeatCount) {
-    // Serial.println(", returning _finals");
     return _finals;
   } else {
-    // Serial.print(", returning _extra ("); Serial.print(_extra.getHeatType()); Serial.println(")");
     return _extra;
   }
 }
@@ -79,9 +70,7 @@ void Schedule::createRegularHeats() {
       if (thisHeatLaneCount == 0) { // then we actually need all the lanes, not 0 of them
         thisHeatLaneCount = _laneUsageCount;
       }
-      // Serial.print("Last regular heat, setting thisHeatLaneCount: "); Serial.println(thisHeatLaneCount);
     }
-    // Serial.print("thisHeatLaneCount: "); Serial.println(thisHeatLaneCount);
     _heat[regularHeatIndex].setLaneUsageCount(thisHeatLaneCount);
     for (int laneIndex = 0 ; laneIndex < thisHeatLaneCount ; laneIndex++) {
       _heat[regularHeatIndex].setLaneAssignment(laneIndex, carIndex);
@@ -112,8 +101,6 @@ void Schedule::setExtra(Heat extra) {
 }
 
 void Schedule::incrementCurrentHeatNumber() {
-  // Serial.print("Schedule::incrementCurrentHeatNumber(), _currentHeatNumber going from ");
-  // Serial.print(_currentHeatNumber); Serial.print(" to "); Serial.println(_currentHeatNumber + 1);
   _currentHeatNumber++;
 }
 

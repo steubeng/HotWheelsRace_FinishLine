@@ -46,7 +46,7 @@ String RaceEvent::toString() {
 void RaceEvent::addCar(Car c) {
   // Serial.print("addCar: _carCount: "); Serial.print(_carCount); Serial.print(", NUMBER_OF_CARS: "); Serial.println(NUMBER_OF_CARS);
   if (_carCount == NUMBER_OF_CARS) {
-    Serial.println("ERROR: carCount exceeds NUMBER_OF_RACERS");
+    Serial.println("WARNING: carCount exceeds NUMBER_OF_RACERS");
     return;
   }
   _car[_carCount] = c;
@@ -98,6 +98,10 @@ void RaceEvent::calculateAverages() {
   }
 }
 
+float RaceEvent::getAverage(int index) {
+  return _average[index];
+}
+
 void RaceEvent::generateLeaderboard() {
   for (int i=0 ; i < NUMBER_OF_CARS ; i++) {
     _leaderboardCar[i] = i;
@@ -143,7 +147,7 @@ String RaceEvent::leaderboardToString() {
     if (_leaderboardTime[i] >= 0) {
       sprintf(buffer, "%6.3f", _leaderboardTime[i]);
     } else {
-      sprintf(buffer, "------");
+      sprintf(buffer, " -----");
     }
     str += buffer;
     str += " "; str += getCar(_leaderboardCar[i]).toString(); str += "\n";

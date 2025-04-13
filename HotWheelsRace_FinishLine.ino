@@ -13,6 +13,23 @@
 #include <Heat.h>
 #include <Schedule.h>
 
+RaceEvent &raceEvent = raceEvent.getInstance();
+
+void addCarsToEvent() {
+  raceEvent.addCar(Car("Josiah", ""));
+  raceEvent.addCar(Car("Sydney", ""));
+  raceEvent.addCar(Car("Luke", ""));
+  raceEvent.addCar(Car("Sianna", ""));
+  raceEvent.addCar(Car("Nath", ""));
+  raceEvent.addCar(Car("Kezia", ""));
+  raceEvent.addCar(Car("Colbie", ""));
+  raceEvent.addCar(Car("Micah", ""));
+  raceEvent.addCar(Car("Abby", ""));
+  raceEvent.addCar(Car("Maison", ""));
+  raceEvent.addCar(Car("Katie", ""));
+  raceEvent.addCar(Car("Ryder", ""));
+}
+
 TFT_eSPI tft = TFT_eSPI();
 
 /* Definitions */
@@ -96,6 +113,101 @@ void printTouchToDisplay(int touchX, int touchY, int touchZ) {
   tft.drawCentreString(tempText, centerX, textY, FONT_SIZE);
 }
 
+// RaceEvent &raceEvent = raceEvent.getInstance();
+Schedule sched(min(LANES, NUMBER_OF_CARS), NUMBER_OF_CARS, NUMBER_OF_TIMES); // 4 lanes, 7 cars, 3 times each
+
+void displayHeatNumber() {
+  int heatNumber = thisHeat.getHeatNumber();
+  tft.setTextColor(TFT_SKYBLUE, TFT_BLACK);
+  tft.fillRect(140, 70, 180, 20, TFT_BLACK);
+  char buffer[32];
+  sprintf(buffer, "Heat: %1d", heatNumber);
+  tft.drawString(buffer, 5, 70, FONT_SIZE);
+  if (heatNumber < regularHeatCount) {
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.drawString("Qualifing Heat", 140, 70, FONT_SIZE);
+    tft.setTextColor(TFT_SKYBLUE, TFT_BLACK);
+  } else if (heatNumber == regularHeatCount) {
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.drawString("Last Qualifier", 140, 70, FONT_SIZE);
+    tft.setTextColor(TFT_SKYBLUE, TFT_BLACK);
+  } else if (heatNumber == regularHeatCount + 1) {
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.drawString("Finals!!!", 140, 70, FONT_SIZE);
+    tft.setTextColor(TFT_SKYBLUE, TFT_BLACK);
+  } else {
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.drawString("Extra Heat", 140, 70, FONT_SIZE);
+    tft.setTextColor(TFT_SKYBLUE, TFT_BLACK);
+  }
+}
+
+void displayLaneAssignments() {
+  char buffer[64];
+  for (int lane=0 ; lane < thisHeat.getLaneUsageCount() ; lane++) {
+    int carIndex = thisHeat.getLaneAssignment(lane);
+    String carName = (raceEvent.getCar(carIndex)).toString();
+    tft.fillRect(5, 70 + ((lane+1) * 30), 315, 210, TFT_BLACK);
+    tft.setTextColor(TFT_SKYBLUE, TFT_BLACK);
+    // sprintf(buffer, "%s", carName);
+    // tft.drawString(buffer, 5, 70 + ((lane+1) * 30), FONT_SIZE);
+    if (thisHeat.getHeatType() == HEAT_TYPE_EXTRA) {
+      carName = "<open>";
+    }
+    tft.drawString(carName, 5, 70 + ((lane+1) * 30), FONT_SIZE);
+    float average = raceEvent.getAverage(carIndex);
+    int elapsedTimeCount = raceEvent.getElapsedTimeCount(carIndex);
+    if ((elapsedTimeCount == 0) || (thisHeat.getHeatType() == HEAT_TYPE_EXTRA)) {
+      sprintf(buffer, "[ --- ]");
+    }
+    else if (average >= 0) {
+      sprintf(buffer, "[%1.3fs]", average);
+    } 
+    tft.setTextColor(TFT_ORANGE, TFT_BLACK);
+    tft.drawString(buffer, 175, 70 + ((lane+1) * 30), FONT_SIZE);
+  }
+}
+
+void displayReady() {
+  tft.setTextColor(TFT_RED, TFT_BLACK);
+  tft.drawString("Ready... ", 45, 30, FONT_SIZE);
+  tft.fillRect(150, 30, 170, 20, TFT_BLACK);
+}
+
+void displaySet() {
+  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  tft.fillRect(150, 30, 170, 20, TFT_BLACK);
+  tft.drawString("Set...", 150, 30, FONT_SIZE);
+  tft.setTextColor(TFT_SKYBLUE, TFT_BLACK);
+  displayHeatNumber();
+  displayLaneAssignments();
+}
+
+void displayGo() {
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.drawString("Go!", 225, 30, FONT_SIZE);
+}
+
+void displayLaneTime(int lane, float time) {
+  String place;
+  tft.setTextColor(TFT_SILVER, TFT_BLACK);
+  if (finishedRacerCount == 1) {
+    place = " 1st    ";
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  } else if (finishedRacerCount == 2) {
+    place = " 2nd    ";
+  } else if (finishedRacerCount == 3) {
+    place = " 3rd    ";
+  } else {
+    place = " 4th    ";
+  }
+  char buffer[32];
+  sprintf(buffer, "%s", place);
+  tft.drawString(buffer, 175, 70 + ((lane+1) * 30), FONT_SIZE);
+  sprintf(buffer, "%7.3fs", time);
+  tft.drawString(buffer, 225, 70 + ((lane+1) * 30), FONT_SIZE);
+}
+
 // Creating a new class that inherits from the ESP_NOW_Peer class is required.
 class ESP_NOW_Peer_Class : public ESP_NOW_Peer {
 public:
@@ -121,17 +233,18 @@ public:
 
     char *buffer = (char*)data;
 
-    // if ((strcmp(buffer, "START_GATE_OPENED") == 0) && (allFinished == false)) {
     if (strcmp(buffer, "START_GATE_OPENED") == 0) {
       raceStatus = STILL_RACING;
       startTimeMillis = millis();
       digitalWrite(readyLED, LOW);
       digitalWrite(raceActiveLED, HIGH);
       scoresReported = false;
+      finishedRacerCount = 0;
       for (int i=0 ; i < LANES ; i++) {
         laneStatus[i] = RACING;
       }
       Serial.println("RACE STARTED!!!");
+      displayGo();
       Serial.println("Watching Finish Line:");
     } else if (strcmp(buffer, "START_GATE_CLOSED") == 0) {
       raceStatus = ALL_AT_GATE;
@@ -141,6 +254,8 @@ public:
       for (int i=0 ; i < LANES ; i++) {
         digitalWrite(finishLineLED[i], LOW);
       }
+      displayReady();
+      displaySet();
       Serial.println("############################################"); Serial.println(thisHeat.toString());
     }
   }
@@ -158,6 +273,7 @@ void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, i
     Serial.println("Registering the peer as a master");
     commEstablished = true;
     tft.fillScreen(TFT_BLACK);
+    displayReady();
     Serial.println("Ready...");
     ESP_NOW_Peer_Class new_master(info->src_addr, ESPNOW_WIFI_CHANNEL, WIFI_IF_STA, NULL);
 
@@ -189,13 +305,9 @@ void displayToggleGate() {
   tft.drawCentreString("Toggle start gate to establish connection. ", 160, 20, 2);
 }
 
-RaceEvent &raceEvent = raceEvent.getInstance();
-Schedule sched(min(LANES, NUMBER_OF_CARS), NUMBER_OF_CARS, NUMBER_OF_TIMES); // 4 lanes, 7 cars, 3 times each
 
 void resetRace() {
   finishedRacerCount = 0;
-  // reset currentHeat
-  // reset raceEvent data
   resetHeat();
 }
 
@@ -208,66 +320,23 @@ void resetHeat() {
   digitalWrite(raceActiveLED, LOW);
   if (commEstablished) {
     digitalWrite(readyLED, HIGH);
+    displayReady();
+    displaySet();
   }
 }
-
-// int checkFinishedStatus(int laneUsageCount, int currentStatus) {
-//   if (currentStatus == STILL_RACING) {
-//     Serial.print("checkFinishedStatus, currentStatus: STILL_RACING");
-//     int finishedLaneCount = 0;
-//     for (int i=0 ; i < laneUsageCount ; i++) {
-//       if (laneStatus[i] == FINISHED) {
-//         finishedLaneCount++;
-//       }
-//     }
-//     Serial.print(", finishedLaneCount: "); Serial.print(finishedLaneCount);
-//     Serial.print(", laneUsageCount: "); Serial.print(laneUsageCount);
-//     if (finishedLaneCount == laneUsageCount) {
-//       Serial.println(", returning: ALL_FINISHED");
-//       return ALL_FINISHED;
-//     } else {
-//       if (currentStatus == ALL_AT_GATE) {
-//         Serial.println(", returning: ALL_AT_GATE");
-//       } else if (currentStatus == ALL_FINISHED) {
-//         Serial.println(", returning: ALL_FINISHED");
-//       } else {
-//         Serial.println(", What the?!?!?");
-//       }
-//     }
-//   }
-
-//   return currentStatus;
-// }
 
 /* Main */
 void setup() {
   Serial.begin(115200);
-
   sched.createRegularHeats();
-  // sched.setFinals(Heat(regularHeatCount, LANES, HEAT_TYPE_FINALS));
-  // sched.setExtra(Heat(regularHeatCount+1, LANES, HEAT_TYPE_EXTRA));
-  // Serial.println(sched.toString());
-
-  raceEvent.addCar(Car("Happy", "Elated"));      // 0
-  raceEvent.addCar(Car("Sleepy", "Tired"));      // 1
-  raceEvent.addCar(Car("Sneezy", "Gesundheit")); // 2
-  raceEvent.addCar(Car("Dopey", "Duh"));         // 3
-  raceEvent.addCar(Car("Doc", "PhD"));           // 4
-  raceEvent.addCar(Car("Grumpy", "Old Man"));    // 5
-  raceEvent.addCar(Car("Bashful", "Shy"));       // 6
-
-  // simulate race times being recorded, remove this later
-  // raceEvent.addElapsedTime(0, 2.0); raceEvent.addElapsedTime(0, 3.0); raceEvent.addElapsedTime(0, 4.0);
-  // raceEvent.addElapsedTime(5, 5.0); raceEvent.addElapsedTime(5, 6.0); raceEvent.addElapsedTime(5, 7.0);
-  // raceEvent.addElapsedTime(2, 8.0); raceEvent.addElapsedTime(2, 9.0); raceEvent.addElapsedTime(2, 10.0);
-  // raceEvent.addElapsedTime(3, 11.0); raceEvent.addElapsedTime(3, 12.0); raceEvent.addElapsedTime(3, 13.0);
-  // raceEvent.addElapsedTime(4, 14.0); raceEvent.addElapsedTime(4, 15.0); raceEvent.addElapsedTime(4, 16.0);
-  // raceEvent.addElapsedTime(1, 17.0); raceEvent.addElapsedTime(1, 18.0); raceEvent.addElapsedTime(1, 19.0);
-  // raceEvent.addElapsedTime(6, 20.0); raceEvent.addElapsedTime(6, 21.0); raceEvent.addElapsedTime(6, 22.0);
-  // raceEvent.calculateAverages();
-  // Serial.println(raceEvent.toString());
-  // raceEvent.generateLeaderboard();
-  // Serial.println(raceEvent.leaderboardToString());
+  addCarsToEvent();
+  // raceEvent.addCar(Car("Happy", "Elated"));      // 0
+  // raceEvent.addCar(Car("Sleepy", "Tired"));      // 1
+  // raceEvent.addCar(Car("Sneezy", "Achew"));      // 2
+  // raceEvent.addCar(Car("Dopey", "Duh"));         // 3
+  // raceEvent.addCar(Car("Doc", "PhD"));           // 4
+  // raceEvent.addCar(Car("Grumpy", "Old Man"));    // 5
+  // raceEvent.addCar(Car("Bashful", "Shy"));       // 6
 
   touchscreenSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
   touchscreen.begin(touchscreenSPI);
@@ -342,37 +411,14 @@ void setup() {
   if (commEstablished == false) {
     displayToggleGate();
   }
-
-
 }
 
-
-
 void loop() {
-
-  // Heat thisHeat = sched.nextHeat();
-  // if (thisHeat.getHeatType() == HEAT_TYPE_REGULAR) {
-  //   Serial.print("  current heat number: "); Serial.println(sched.getCurrentHeatNumber());
-  //   Serial.print(thisHeat.toString());
-  //   Serial.println("REGULAR");
-  // } else if (thisHeat.getHeatType() == HEAT_TYPE_FINALS) {
-  //   Serial.print("  current heat number: "); Serial.println(sched.getCurrentHeatNumber());
-  //   Serial.print(thisHeat.toString());
-  //   Serial.println("FINALS");
-  // } else if ((thisHeat.getHeatType() == HEAT_TYPE_EXTRA) && (seenExtraYet == false)) {
-  //   Serial.print("  current heat number: "); Serial.println(sched.getCurrentHeatNumber());
-  //   Serial.print(thisHeat.toString());
-  //   Serial.println("EXTRA");
-  //   seenExtraYet = true;
-  // }
-
-
   if ((raceStatus == ALL_AT_GATE) && (haveThisHeat == false) && (commEstablished)) {
     Heat nextHeat = sched.nextHeat();
     thisHeat.setHeatNumber(nextHeat.getHeatNumber());
     thisHeat.setLaneUsageCount(nextHeat.getLaneUsageCount());
     thisHeat.setHeatType(nextHeat.getHeatType());
-    // Serial.print("nextHeat.getHeatType(): ");Serial.println(nextHeat.getHeatType());
     for (int i=0 ; i < LANES ; i++) {
       thisHeat.setLaneAssignment(i, nextHeat.getLaneAssignment(i));
     }
@@ -382,7 +428,9 @@ void loop() {
       if ((analogRead(breakBeamPin[i]) < 1000) && (laneStatus[i] == RACING)) { // someone crossed the finish line
         laneStatus[i] = FINISHED;
         finishedLaneCount++;
+        finishedRacerCount++;
         float elapsedTime = (millis() - startTimeMillis) / 1000.0;
+        displayLaneTime(i, elapsedTime);
         if (thisHeat.getHeatType() == HEAT_TYPE_REGULAR) {
           raceEvent.addElapsedTime(thisHeat.getLaneAssignment(i), elapsedTime);
         }
@@ -411,7 +459,6 @@ void loop() {
       raceEvent.generateLeaderboard();
     }
 
-
     // TODO: set the finals heat here.
     if (sched.getCurrentHeatNumber() == regularHeatCount - 1) { // last regular heat just ended, build finals
       Heat finals;
@@ -428,7 +475,6 @@ void loop() {
       extra.setLaneUsageCount(min(LANES, NUMBER_OF_CARS));
       extra.setHeatType(HEAT_TYPE_EXTRA);
       for (int i=0 ; i < LANES ; i++) {
-        // extra.setLaneAssignment(i, raceEvent.getLeaderboardCar(i));
         extra.setLaneAssignment(i, -1);
       }
       sched.setExtra(extra);
@@ -450,8 +496,6 @@ void loop() {
   if ((resetSwitch.isPressed()) && (commEstablished)) {
     resetHeat();
   }
-
-  // raceStatus = checkFinishedStatus(thisHeat.getLaneUsageCount(), raceStatus);
 
   // Checks if Touchscreen was touched, and prints X, Y and Pressure (Z) info on the TFT display and Serial Monitor
   if (touchscreen.tirqTouched() && touchscreen.touched()) {

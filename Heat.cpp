@@ -22,7 +22,11 @@ String Heat::toString() {
   str += "    laneAssignment:\n";
   for (int laneIndex = 0 ; laneIndex < _laneUsageCount ; laneIndex++) {
     str += "      Lane "; str += (laneIndex + 1); str += ": ";
-    str += (raceEvent.getCar(_laneAssignment[laneIndex])).toString(); str += "\n";
+    if (_heatType == HEAT_TYPE_EXTRA) {
+      str += "<open>\n";
+    } else {
+      str += (raceEvent.getCar(_laneAssignment[laneIndex])).toString(); str += "\n";
+    }
   }
   return str;
 }

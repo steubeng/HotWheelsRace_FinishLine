@@ -234,8 +234,6 @@ public:
     char *buffer = (char*)data;
 
     if (strcmp(buffer, "START_GATE_OPENED") == 0) {
-      raceStatus = STILL_RACING;
-      startTimeMillis = millis();
       digitalWrite(readyLED, LOW);
       digitalWrite(raceActiveLED, HIGH);
       scoresReported = false;
@@ -246,6 +244,8 @@ public:
       Serial.println("RACE STARTED!!!");
       displayGo();
       Serial.println("Watching Finish Line:");
+      startTimeMillis = millis();
+      raceStatus = STILL_RACING;
     } else if (strcmp(buffer, "START_GATE_CLOSED") == 0) {
       raceStatus = ALL_AT_GATE;
       finishedLaneCount = 0;

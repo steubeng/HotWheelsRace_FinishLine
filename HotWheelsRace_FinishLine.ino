@@ -307,28 +307,63 @@ String getDefaultMacAddress() {
 
 void displayToggleGate() {
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawCentreString("Toggle start gate to establish connection.", 160, 200, 2);
+  tft.drawCentreString("Toggle start gate to establish connection.", 160, 210, 2);
 }
 
 void displayIrThreshold() {
   char buffer[16];
-  int beamReading = analogRead(breakBeamPin[0]);
+  int beamReadingL1 = analogRead(breakBeamPin[0]);
+  int beamReadingL2 = analogRead(breakBeamPin[1]);
+  int beamReadingL3 = analogRead(breakBeamPin[2]);
+  int beamReadingL4 = analogRead(breakBeamPin[3]);
   // Serial.print("beamReading: "); Serial.print(beamReading); Serial.print(", irThreshold: "); Serial.println(irThreshold);
 
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.drawString("Calibrate Break Beam Sensor Threshold.", 30, 30, 2);
-  tft.drawString("Break-Beam              Current", 60, 70, 2);
-  tft.drawString(" Reading               Threshold", 60, 90, 2);
+  tft.drawString("Break-Beam              Current", 60, 60, 2);
+  tft.drawString(" Reading               Threshold", 60, 80, 2);
+  tft.drawString("L1:", 40, 100, 4);
+  tft.drawString("L2:", 40, 124, 4);
+  tft.drawString("L3:", 40, 148, 4);
+  tft.drawString("L4:", 40, 172, 4);
 
-  tft.fillRect(0, 110, 320, 40, TFT_BLACK);
+  tft.fillRect(80, 100, 240, 92, TFT_BLACK);
 
-  sprintf(buffer, "%4d", beamReading);
-  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-  tft.drawString(buffer, 35, 110, 6);
+  sprintf(buffer, "%4d", beamReadingL1);
+  if (beamReadingL1 < irThreshold) {
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  } else {
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  }
+  tft.drawString(buffer, 80, 100, 4);
+
+  sprintf(buffer, "%4d", beamReadingL2);
+  if (beamReadingL2 < irThreshold) {
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  } else {
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  }
+  tft.drawString(buffer, 80, 124, 4);
+
+  sprintf(buffer, "%4d", beamReadingL3);
+  if (beamReadingL3 < irThreshold) {
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  } else {
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  }
+  tft.drawString(buffer, 80, 148, 4);
+
+  sprintf(buffer, "%4d", beamReadingL4);
+  if (beamReadingL4 < irThreshold) {
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  } else {
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  }
+  tft.drawString(buffer, 80, 172, 4);
 
   sprintf(buffer, "%4d", irThreshold);
   tft.setTextColor(TFT_BLUE, TFT_BLACK);
-  tft.drawString(buffer, 180, 110, 6);
+  tft.drawString(buffer, 180, 100, 6);
 }
 
 
@@ -446,6 +481,13 @@ void loop() {
     if (irThreshold != previousIrThreshold) {
       displayIrThreshold();
       previousIrThreshold = irThreshold;
+    }
+    for (int i=0 ; i < LANES ; i++) {
+      if (analogRead(breakBeamPin[i]) < irThreshold) {
+        digitalWrite(finishLineLED[i], HIGH);
+      } else {
+        digitalWrite(finishLineLED[i], LOW);
+      }
     }
     delay(200);
   }

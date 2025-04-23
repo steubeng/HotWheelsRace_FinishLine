@@ -62,6 +62,7 @@ XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 #define STILL_RACING 1
 #define ALL_FINISHED 2
 
+int potPin = 5;
 int breakBeamPin[LANES] = {6, 7, 18, 16};
 int finishLineLED[LANES] = {9, 10, 46, 17};
 int laneStatus[LANES];
@@ -69,6 +70,8 @@ int raceStatus;
 int finishedRacerCount;
 int readyLED = 11;
 int raceActiveLED = 8;
+int irThreshold = 1000;
+int previousIrThreshold = 0;
 bool commEstablished = false;
 ezButton resetSwitch(3);
 long lastTouchMillis = millis() - REPEATED_TOUCH_TOLERANCE;
@@ -272,6 +275,8 @@ void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, i
     Serial.printf("Unknown peer " MACSTR " sent a broadcast message\n", MAC2STR(info->src_addr));
     Serial.println("Registering the peer as a master");
     commEstablished = true;
+    Serial.print("Break beam sensor threshold: ");
+    Serial.println(irThreshold);
     tft.fillScreen(TFT_BLACK);
     displayReady();
     Serial.println("Ready...");
@@ -302,7 +307,28 @@ String getDefaultMacAddress() {
 
 void displayToggleGate() {
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawCentreString("Toggle start gate to establish connection. ", 160, 20, 2);
+  tft.drawCentreString("Toggle start gate to establish connection.", 160, 200, 2);
+}
+
+void displayIrThreshold() {
+  char buffer[16];
+  int beamReading = analogRead(breakBeamPin[0]);
+  // Serial.print("beamReading: "); Serial.print(beamReading); Serial.print(", irThreshold: "); Serial.println(irThreshold);
+
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.drawString("Calibrate Break Beam Sensor Threshold.", 30, 30, 2);
+  tft.drawString("Break-Beam              Current", 60, 70, 2);
+  tft.drawString(" Reading               Threshold", 60, 90, 2);
+
+  tft.fillRect(0, 110, 320, 40, TFT_BLACK);
+
+  sprintf(buffer, "%4d", beamReading);
+  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  tft.drawString(buffer, 35, 110, 6);
+
+  sprintf(buffer, "%4d", irThreshold);
+  tft.setTextColor(TFT_BLUE, TFT_BLACK);
+  tft.drawString(buffer, 180, 110, 6);
 }
 
 
@@ -414,6 +440,15 @@ void setup() {
 }
 
 void loop() {
+  if ((raceStatus == ALL_AT_GATE) && (commEstablished == false)) {
+    irThreshold = map(analogRead(potPin), 650, 4096, 0, 4096);
+    irThreshold = analogRead(potPin);
+    if (irThreshold != previousIrThreshold) {
+      displayIrThreshold();
+      previousIrThreshold = irThreshold;
+    }
+    delay(200);
+  }
   if ((raceStatus == ALL_AT_GATE) && (haveThisHeat == false) && (commEstablished)) {
     Heat nextHeat = sched.nextHeat();
     thisHeat.setHeatNumber(nextHeat.getHeatNumber());
@@ -425,7 +460,7 @@ void loop() {
     haveThisHeat = true;
   } else if (raceStatus == STILL_RACING) {
     for (int i=0 ; i < thisHeat.getLaneUsageCount() ; i++) {
-      if ((analogRead(breakBeamPin[i]) < 1000) && (laneStatus[i] == RACING)) { // someone crossed the finish line
+      if ((analogRead(breakBeamPin[i]) < irThreshold) && (laneStatus[i] == RACING)) { // someone crossed the finish line
         laneStatus[i] = FINISHED;
         finishedLaneCount++;
         finishedRacerCount++;

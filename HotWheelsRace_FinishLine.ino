@@ -79,6 +79,7 @@ long startTimeMillis;
 bool scoresReported = false;
 bool haveThisHeat = false;
 int finishedLaneCount = 0;
+long resetSwitchPressTime = 0;
 Heat thisHeat;
 
 // Touchscreen coordinates: (x, y) and pressure (z)
@@ -570,9 +571,19 @@ void loop() {
   }
 
   resetSwitch.loop();
-  if ((resetSwitch.isPressed()) && (commEstablished)) {
+  if (resetSwitch.isReleased()) {
     resetHeat();
+    long now = millis();
+    if ((resetSwitchPressTime != 0) && (now - resetSwitchPressTime > 2000)) {
+      esp_restart();
+    }
+    resetSwitchPressTime = 0;
   }
+
+  if ((resetSwitch.isPressed()) && (resetSwitchPressTime == 0)) {
+    resetSwitchPressTime = millis();
+  }
+
 
   // Checks if Touchscreen was touched, and prints X, Y and Pressure (Z) info on the TFT display and Serial Monitor
   if (touchscreen.tirqTouched() && touchscreen.touched()) {

@@ -595,6 +595,7 @@ void loop() {
     if (now - lastTouchMillis > REPEATED_TOUCH_TOLERANCE) {
       // what to do if the screen is touched?
       lastTouchMillis = now;
+      raceEvent.generateLeaderboard();
       Serial.println(raceEvent.leaderboardToString());
     }
 

@@ -29,6 +29,7 @@ class Schedule {
     void setFinals(Heat finals);
     void setExtra(Heat extra);
     void incrementCurrentHeatNumber();
+    void decrementCurrentHeatNumber();
     int getCurrentHeatNumber();
 };
 

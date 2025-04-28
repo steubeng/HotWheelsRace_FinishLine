@@ -75,6 +75,11 @@ void RaceEvent::addElapsedTime(int carIndex, float seconds) {
   _elapsedTimeCount[carIndex]++;
 }
 
+void RaceEvent::removeMostRecentElapsedTime(int carIndex) {
+  _elapsedTime[carIndex][_elapsedTimeCount[carIndex]] = 0; // this is probably not necessary
+  _elapsedTimeCount[carIndex]--;
+}
+
 float RaceEvent::getElapsedTime(int carIndex, int elapsedTimeIndex) {
   if ((carIndex < NUMBER_OF_CARS) && (elapsedTimeIndex < _elapsedTimeCount[carIndex])) {
     return _elapsedTime[carIndex][elapsedTimeIndex];

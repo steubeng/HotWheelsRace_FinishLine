@@ -20,14 +20,14 @@ void addCarsToEvent() {
   raceEvent.addCar(Car("Sydney", ""));
   raceEvent.addCar(Car("Luke", ""));
   raceEvent.addCar(Car("Sianna", ""));
-  raceEvent.addCar(Car("Nath", ""));
-  raceEvent.addCar(Car("Kezia", ""));
-  raceEvent.addCar(Car("Colbie", ""));
-  raceEvent.addCar(Car("Micah", ""));
-  raceEvent.addCar(Car("Abby", ""));
-  raceEvent.addCar(Car("Maison", ""));
-  raceEvent.addCar(Car("Katie", ""));
-  raceEvent.addCar(Car("Ryder", ""));
+  // raceEvent.addCar(Car("Nath", ""));
+  // raceEvent.addCar(Car("Kezia", ""));
+  // raceEvent.addCar(Car("Colbie", ""));
+  // raceEvent.addCar(Car("Micah", ""));
+  // raceEvent.addCar(Car("Abby", ""));
+  // raceEvent.addCar(Car("Maison", ""));
+  // raceEvent.addCar(Car("Katie", ""));
+  // raceEvent.addCar(Car("Ryder", ""));
 }
 
 TFT_eSPI tft = TFT_eSPI();

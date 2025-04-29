@@ -20,9 +20,9 @@ void addCarsToEvent() {
   raceEvent.addCar(Car("Sydney", "2"));
   raceEvent.addCar(Car("Luke", "3"));
   raceEvent.addCar(Car("Sianna", "4"));
-  raceEvent.addCar(Car("Nath", "5"));
-  raceEvent.addCar(Car("Kezia", "6"));
-  raceEvent.addCar(Car("Colbie", "7"));
+  // raceEvent.addCar(Car("Nath", "5"));
+  // raceEvent.addCar(Car("Kezia", "6"));
+  // raceEvent.addCar(Car("Colbie", "7"));
   // raceEvent.addCar(Car("Micah", ""));
   // raceEvent.addCar(Car("Abby", ""));
   // raceEvent.addCar(Car("Maison", ""));
@@ -592,21 +592,21 @@ void loop() {
       for (int i=0 ; i < LANES ; i++) {
         // if the lane finished then the time has already been added via a call
         // to raceEvent.addElapsedTime(thisHeat.getLaneAssignment(i), elapsedTime);
-        Serial.print("# this.getHeatType():");
-        if (thisHeat.getHeatType() == HEAT_TYPE_REGULAR) {
-          Serial.println("HEAT_TYPE_REGULAR");
-        } else if (thisHeat.getHeatType() == HEAT_TYPE_FINALS) {
-          Serial.println("HEAT_TYPE_FINALS");
-        } else if (thisHeat.getHeatType() == HEAT_TYPE_EXTRA) {
-          Serial.println("HEAT_TYPE_EXTRA");
-        } else {
-          Serial.println("** <unknown> **");
-        }
+        // Serial.print("# this.getHeatType():");
+        // if (thisHeat.getHeatType() == HEAT_TYPE_REGULAR) {
+        //   Serial.println("HEAT_TYPE_REGULAR");
+        // } else if (thisHeat.getHeatType() == HEAT_TYPE_FINALS) {
+        //   Serial.println("HEAT_TYPE_FINALS");
+        // } else if (thisHeat.getHeatType() == HEAT_TYPE_EXTRA) {
+        //   Serial.println("HEAT_TYPE_EXTRA");
+        // } else {
+        //   Serial.println("** <unknown> **");
+        // }
         if ((laneStatus[i] == FINISHED) && (thisHeat.getHeatType() == HEAT_TYPE_REGULAR)) {
           raceEvent.removeMostRecentElapsedTime(thisHeat.getLaneAssignment(i));
-          Serial.println("removed most recent elapsed time");
+          // Serial.println("removed most recent elapsed time");
         } else {
-          Serial.println("did NOT remove most recent elapsed time");
+          // Serial.println("did NOT remove most recent elapsed time");
         }
         // we need to back it out for each finished lane (check laneStatus[i] == FINISHED)
         // need to add a method to raceEvent called "removeMostRecentElapsedTime(thisHeat.getLaneAssignment(i))"

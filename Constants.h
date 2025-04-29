@@ -1,7 +1,7 @@
 #ifndef Constants_h
 #define Constants_h
 
-#define NUMBER_OF_CARS 12
+#define NUMBER_OF_CARS 7
 #define NUMBER_OF_TIMES 2
 #define LANES 4
 

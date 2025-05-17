@@ -2,7 +2,7 @@
 #define Constants_h
 
 #define NUMBER_OF_CARS 4
-#define NUMBER_OF_TIMES 2
+#define NUMBER_OF_TIMES 3
 #define LANES 4
 
 #define HEAT_TYPE_REGULAR 0

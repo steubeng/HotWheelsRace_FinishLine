@@ -104,6 +104,10 @@ void Schedule::incrementCurrentHeatNumber() {
   _currentHeatNumber++;
 }
 
+void Schedule::decrementCurrentHeatNumber() {
+  _currentHeatNumber--;
+}
+
 int Schedule::getCurrentHeatNumber() {
   return _currentHeatNumber;
 }

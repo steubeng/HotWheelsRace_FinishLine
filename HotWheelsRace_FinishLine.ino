@@ -16,13 +16,13 @@
 RaceEvent &raceEvent = raceEvent.getInstance();
 
 void addCarsToEvent() {
-  raceEvent.addCar(Car("Josiah", ""));
-  raceEvent.addCar(Car("Sydney", ""));
-  raceEvent.addCar(Car("Luke", ""));
-  raceEvent.addCar(Car("Sianna", ""));
-  // raceEvent.addCar(Car("Nath", ""));
-  // raceEvent.addCar(Car("Kezia", ""));
-  // raceEvent.addCar(Car("Colbie", ""));
+  raceEvent.addCar(Car("Josiah", "1"));
+  raceEvent.addCar(Car("Sydney", "2"));
+  raceEvent.addCar(Car("Luke", "3"));
+  raceEvent.addCar(Car("Sianna", "4"));
+  // raceEvent.addCar(Car("Nath", "5"));
+  // raceEvent.addCar(Car("Kezia", "6"));
+  // raceEvent.addCar(Car("Colbie", "7"));
   // raceEvent.addCar(Car("Micah", ""));
   // raceEvent.addCar(Car("Abby", ""));
   // raceEvent.addCar(Car("Maison", ""));
@@ -257,6 +257,7 @@ public:
       digitalWrite(raceActiveLED, LOW);
       for (int i=0 ; i < LANES ; i++) {
         digitalWrite(finishLineLED[i], LOW);
+        laneStatus[i] = AT_GATE;
       }
       displayReady();
       displaySet();
@@ -375,10 +376,10 @@ void resetRace() {
 
 void resetHeat() {
   raceStatus = ALL_AT_GATE;
-  for (int i=0 ; i < LANES ; i++) {
-    digitalWrite(finishLineLED[i], LOW);
-    laneStatus[i] = AT_GATE;
-  }
+  // for (int i=0 ; i < LANES ; i++) {
+  //   digitalWrite(finishLineLED[i], LOW);
+  //   laneStatus[i] = AT_GATE;
+  // }
   digitalWrite(raceActiveLED, LOW);
   if (commEstablished) {
     digitalWrite(readyLED, HIGH);
@@ -561,10 +562,11 @@ void loop() {
     if (thisHeat.getHeatType() == HEAT_TYPE_REGULAR) {
       Serial.println(raceEvent.leaderboardToString());
     }
-    raceStatus = ALL_AT_GATE;
-    for (int i=0 ; i < thisHeat.getLaneUsageCount() ; i++) {
-      laneStatus[i] = AT_GATE;
-    }
+    // raceStatus = ALL_AT_GATE; // take this out?
+    // // take the below block out?
+    // for (int i=0 ; i < thisHeat.getLaneUsageCount() ; i++) {
+    //   laneStatus[i] = AT_GATE;
+    // }
     haveThisHeat = false;  // invalidate thisHeat since it's over; next time through we'll get a new one
     sched.incrementCurrentHeatNumber();
     scoresReported = true;
@@ -572,10 +574,63 @@ void loop() {
 
   resetSwitch.loop();
   if (resetSwitch.isReleased()) {
-    resetHeat();
     long now = millis();
+    Serial.print("resetSwitch released, raceStatus: ");
+    if (raceStatus == ALL_AT_GATE) {
+      Serial.print("ALL_AT_GATE");
+    } else if (raceStatus == STILL_RACING) {
+      Serial.print("STILL_RACING");
+    } else if (raceStatus == ALL_FINISHED) {
+      Serial.print("ALL_FINISHED");
+    } else {
+      Serial.print("** unknown **");
+    }
+    Serial.print(" ("); Serial.print(raceStatus); Serial.println(")");
     if ((resetSwitchPressTime != 0) && (now - resetSwitchPressTime > 2000)) {
       esp_restart();
+    } else if ((raceStatus == STILL_RACING) || (raceStatus == ALL_FINISHED) || (raceStatus == ALL_AT_GATE)) {
+      for (int i=0 ; i < LANES ; i++) {
+        // if the lane finished then the time has already been added via a call
+        // to raceEvent.addElapsedTime(thisHeat.getLaneAssignment(i), elapsedTime);
+        // Serial.print("# this.getHeatType():");
+        // if (thisHeat.getHeatType() == HEAT_TYPE_REGULAR) {
+        //   Serial.println("HEAT_TYPE_REGULAR");
+        // } else if (thisHeat.getHeatType() == HEAT_TYPE_FINALS) {
+        //   Serial.println("HEAT_TYPE_FINALS");
+        // } else if (thisHeat.getHeatType() == HEAT_TYPE_EXTRA) {
+        //   Serial.println("HEAT_TYPE_EXTRA");
+        // } else {
+        //   Serial.println("** <unknown> **");
+        // }
+        if ((laneStatus[i] == FINISHED) && (thisHeat.getHeatType() == HEAT_TYPE_REGULAR)) {
+          raceEvent.removeMostRecentElapsedTime(thisHeat.getLaneAssignment(i));
+          // Serial.println("removed most recent elapsed time");
+        } else {
+          // Serial.println("did NOT remove most recent elapsed time");
+        }
+        // we need to back it out for each finished lane (check laneStatus[i] == FINISHED)
+        // need to add a method to raceEvent called "removeMostRecentElapsedTime(thisHeat.getLaneAssignment(i))"
+      }
+
+      if (raceStatus == ALL_FINISHED) {
+        Serial.println("# decrementing heat number");
+        sched.decrementCurrentHeatNumber();
+      }
+
+      // raceEvent needs to now "calculateAverages()" and "generateLeaderboard()"
+      raceEvent.calculateAverages();
+      Serial.println("Running Average of Elapsed Times after redoing/throwing out this heat:");
+      Serial.println(raceEvent.toString());
+      raceEvent.generateLeaderboard();
+      haveThisHeat = false;  // invalidate thisHeat since it's over; next time through we'll get a new one
+
+      Serial.print("REDO HEAT "); Serial.println(sched.getCurrentHeatNumber() + 1);
+      raceStatus = ALL_FINISHED;
+      for (int i=0 ; i < LANES ; i++) {
+        digitalWrite(finishLineLED[i], LOW);
+      }
+      scoresReported = true;
+      resetHeat();
     }
     resetSwitchPressTime = 0;
   }

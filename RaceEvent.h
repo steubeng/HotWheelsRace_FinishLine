@@ -26,6 +26,7 @@ class RaceEvent {
     Car getCar(int index);
     int getCarCount();
     void addElapsedTime(int carIndex, float seconds);
+    void removeMostRecentElapsedTime(int carIndex);
     float getElapsedTime(int carIndex, int elapsedTimeIndex);
     int getElapsedTimeCount(int carIndex);
     void calculateAverages();

@@ -1,6 +1,7 @@
-#include "ESP32_NOW.h"
+// #include "ESP32_NOW.h"
+#include <esp_now.h>
 #include "WiFi.h"
-#include <esp_mac.h>
+// #include <esp_mac.h>
 #include <vector>
 #include <SPI.h>
 #include <Wire.h>
@@ -30,10 +31,25 @@ void addCarsToEvent() {
   // raceEvent.addCar(Car("Ryder", ""));
 }
 
+uint8_t broadcastAddress[] = {0xD8, 0x3B, 0xDA, 0x73, 0x97, 0x88}; // MAC Address of Waveshare receiver
+String success;
+
+// message structure for FinishLine <--> WaveShare communication - do this later
+typedef struct struct_message {
+  float temp;
+  float hum;
+  float pres;
+} struct_message;
+
+char outgoingMessage[128];
+char incomingMessage[128];
+
+esp_now_peer_info_t peerInfo;
+
 TFT_eSPI tft = TFT_eSPI();
 
 /* Definitions */
-#define ESPNOW_WIFI_CHANNEL 6
+// #define ESPNOW_WIFI_CHANNEL 6
 #define SCL0_Pin 19
 #define SDA0_Pin 20
 
@@ -80,6 +96,7 @@ bool scoresReported = false;
 bool haveThisHeat = false;
 int finishedLaneCount = 0;
 long resetSwitchPressTime = 0;
+bool calibrationMode = true;
 Heat thisHeat;
 
 // Touchscreen coordinates: (x, y) and pressure (z)
@@ -213,97 +230,97 @@ void displayLaneTime(int lane, float time) {
 }
 
 // Creating a new class that inherits from the ESP_NOW_Peer class is required.
-class ESP_NOW_Peer_Class : public ESP_NOW_Peer {
-public:
-  // Constructor of the class
-  ESP_NOW_Peer_Class(const uint8_t *mac_addr, uint8_t channel, wifi_interface_t iface, const uint8_t *lmk) : ESP_NOW_Peer(mac_addr, channel, iface, lmk) {}
+// class ESP_NOW_Peer_Class : public ESP_NOW_Peer {
+// public:
+//   // Constructor of the class
+//   ESP_NOW_Peer_Class(const uint8_t *mac_addr, uint8_t channel, wifi_interface_t iface, const uint8_t *lmk) : ESP_NOW_Peer(mac_addr, channel, iface, lmk) {}
 
-  // Destructor of the class
-  ~ESP_NOW_Peer_Class() {}
+//   // Destructor of the class
+//   ~ESP_NOW_Peer_Class() {}
 
-  // Function to register the master peer
-  bool add_peer() {
-    if (!add()) {
-      log_e("Failed to register the broadcast peer");
-      return false;
-    }
-    return true;
-  }
+//   // Function to register the master peer
+//   bool add_peer() {
+//     if (!add()) {
+//       log_e("Failed to register the broadcast peer");
+//       return false;
+//     }
+//     return true;
+//   }
 
-  // Function to print the received messages from the master
-  void onReceive(const uint8_t *data, size_t len, bool broadcast) {
-    Serial.printf("Received a message from master " MACSTR " (%s)\n", MAC2STR(addr()), broadcast ? "broadcast" : "unicast");
-    Serial.printf("  Message: %s\n", (char *)data);
+//   // Function to print the received messages from the master
+//   void onReceive(const uint8_t *data, size_t len, bool broadcast) {
+//     Serial.printf("Received a message from master " MACSTR " (%s)\n", MAC2STR(addr()), broadcast ? "broadcast" : "unicast");
+//     Serial.printf("  Message: %s\n", (char *)data);
 
-    char *buffer = (char*)data;
+//     char *buffer = (char*)data;
 
-    if (strcmp(buffer, "START_GATE_OPENED") == 0) {
-      digitalWrite(readyLED, LOW);
-      digitalWrite(raceActiveLED, HIGH);
-      scoresReported = false;
-      finishedRacerCount = 0;
-      for (int i=0 ; i < LANES ; i++) {
-        laneStatus[i] = RACING;
-      }
-      Serial.println("RACE STARTED!!!");
-      displayGo();
-      Serial.println("Watching Finish Line:");
-      startTimeMillis = millis();
-      raceStatus = STILL_RACING;
-    } else if (strcmp(buffer, "START_GATE_CLOSED") == 0) {
-      raceStatus = ALL_AT_GATE;
-      finishedLaneCount = 0;
-      digitalWrite(readyLED, HIGH);
-      digitalWrite(raceActiveLED, LOW);
-      for (int i=0 ; i < LANES ; i++) {
-        digitalWrite(finishLineLED[i], LOW);
-        laneStatus[i] = AT_GATE;
-      }
-      displayReady();
-      displaySet();
-      Serial.println("############################################"); Serial.println(thisHeat.toString());
-    }
-  }
-};
+//     if (strcmp(buffer, "START_GATE_OPENED") == 0) {
+//       digitalWrite(readyLED, LOW);
+//       digitalWrite(raceActiveLED, HIGH);
+//       scoresReported = false;
+//       finishedRacerCount = 0;
+//       for (int i=0 ; i < LANES ; i++) {
+//         laneStatus[i] = RACING;
+//       }
+//       Serial.println("RACE STARTED!!!");
+//       displayGo();
+//       Serial.println("Watching Finish Line:");
+//       startTimeMillis = millis();
+//       raceStatus = STILL_RACING;
+//     } else if (strcmp(buffer, "START_GATE_CLOSED") == 0) {
+//       raceStatus = ALL_AT_GATE;
+//       finishedLaneCount = 0;
+//       digitalWrite(readyLED, HIGH);
+//       digitalWrite(raceActiveLED, LOW);
+//       for (int i=0 ; i < LANES ; i++) {
+//         digitalWrite(finishLineLED[i], LOW);
+//         laneStatus[i] = AT_GATE;
+//       }
+//       displayReady();
+//       displaySet();
+//       Serial.println("############################################"); Serial.println(thisHeat.toString());
+//     }
+//   }
+// };
 
 // List of all the masters. It will be populated when a new master is registered
-std::vector<ESP_NOW_Peer_Class> masters;
+// std::vector<ESP_NOW_Peer_Class> masters;
 
 /* Callbacks */
 
 // Callback called when an unknown peer sends a message
-void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, int len, void *arg) {
-  if (memcmp(info->des_addr, ESP_NOW.BROADCAST_ADDR, 6) == 0) {
-    Serial.printf("Unknown peer " MACSTR " sent a broadcast message\n", MAC2STR(info->src_addr));
-    Serial.println("Registering the peer as a master");
-    commEstablished = true;
-    Serial.print("Break beam sensor threshold: ");
-    Serial.println(irThreshold);
-    tft.fillScreen(TFT_BLACK);
-    displayReady();
-    Serial.println("Ready...");
-    ESP_NOW_Peer_Class new_master(info->src_addr, ESPNOW_WIFI_CHANNEL, WIFI_IF_STA, NULL);
+// void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, int len, void *arg) {
+//   if (memcmp(info->des_addr, ESP_NOW.BROADCAST_ADDR, 6) == 0) {
+//     Serial.printf("Unknown peer " MACSTR " sent a broadcast message\n", MAC2STR(info->src_addr));
+//     Serial.println("Registering the peer as a master");
+//     commEstablished = true;
+//     Serial.print("Break beam sensor threshold: ");
+//     Serial.println(irThreshold);
+//     tft.fillScreen(TFT_BLACK);
+//     displayReady();
+//     Serial.println("Ready...");
+//     ESP_NOW_Peer_Class new_master(info->src_addr, ESPNOW_WIFI_CHANNEL, WIFI_IF_STA, NULL);
 
-    masters.push_back(new_master);
-    if (!masters.back().add_peer()) {
-      Serial.println("Failed to register the new master");
-      return;
-    }
-  } else {
-    // The slave will only receive broadcast messages
-    log_v("Received a unicast message from " MACSTR, MAC2STR(info->src_addr));
-    log_v("Igorning the message");
-  }
-}
+//     masters.push_back(new_master);
+//     if (!masters.back().add_peer()) {
+//       Serial.println("Failed to register the new master");
+//       return;
+//     }
+//   } else {
+//     // The slave will only receive broadcast messages
+//     log_v("Received a unicast message from " MACSTR, MAC2STR(info->src_addr));
+//     log_v("Igorning the message");
+//   }
+// }
 
 String getDefaultMacAddress() {
   String mac = "";
   unsigned char mac_base[6] = {0};
-  if (esp_efuse_mac_get_default(mac_base) == ESP_OK) {
-    char buffer[18];  // 6*2 characters for hex + 5 characters for colons + 1 character for null terminator
-    sprintf(buffer, "%02X:%02X:%02X:%02X:%02X:%02X", mac_base[0], mac_base[1], mac_base[2], mac_base[3], mac_base[4], mac_base[5]);
-    mac = buffer;
-  }
+  // if (esp_efuse_mac_get_default(mac_base) == ESP_OK) {
+  //   char buffer[18];  // 6*2 characters for hex + 5 characters for colons + 1 character for null terminator
+  //   sprintf(buffer, "%02X:%02X:%02X:%02X:%02X:%02X", mac_base[0], mac_base[1], mac_base[2], mac_base[3], mac_base[4], mac_base[5]);
+  //   mac = buffer;
+  // }
   return mac;
 }
 
@@ -321,6 +338,7 @@ void displayIrThreshold() {
   // Serial.print("beamReading: "); Serial.print(beamReading); Serial.print(", irThreshold: "); Serial.println(irThreshold);
 
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.fillRect(30, 30, 290, 30, TFT_BLACK);
   tft.drawString("Calibrate Break Beam Sensor Threshold.", 30, 30, 2);
   tft.drawString("Break-Beam              Current", 60, 60, 2);
   tft.drawString(" Reading               Threshold", 60, 80, 2);
@@ -388,6 +406,56 @@ void resetHeat() {
   }
 }
 
+// Callback when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  if (status ==0){
+    success = "Delivery Success :)";
+  }
+  else{
+    success = "Delivery Fail :(";
+  }
+}
+
+// Callback when data is received
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
+  Serial.print("Bytes received: ");
+  Serial.println(len);
+  Serial.printf("***** incoming message: %s\n", incomingMessage);
+
+  if (strcmp(incomingMessage, "START_GATE_OPENED") == 0) {
+    digitalWrite(readyLED, LOW);
+    digitalWrite(raceActiveLED, HIGH);
+    scoresReported = false;
+    finishedRacerCount = 0;
+    for (int i=0 ; i < LANES ; i++) {
+      laneStatus[i] = RACING;
+    }
+    Serial.println("RACE STARTED!!!");
+    displayGo();
+    Serial.println("Watching Finish Line:");
+    startTimeMillis = millis();
+    raceStatus = STILL_RACING;
+  } else if (strcmp(incomingMessage, "START_GATE_CLOSED") == 0) {
+    raceStatus = ALL_AT_GATE;
+    finishedLaneCount = 0;
+    digitalWrite(readyLED, HIGH);
+    digitalWrite(raceActiveLED, LOW);
+    for (int i=0 ; i < LANES ; i++) {
+      digitalWrite(finishLineLED[i], LOW);
+      laneStatus[i] = AT_GATE;
+    }
+    Serial.println("******************* after for loop ********************");
+    displayReady();
+    Serial.println("******** between READY and SET ******************");
+    displaySet();
+    // Serial.println("############################################"); Serial.println(thisHeat.toString());
+    Serial.println("******************* after TFT calls ********************");
+  }
+}
+
 /* Main */
 void setup() {
   Serial.begin(115200);
@@ -434,10 +502,33 @@ void setup() {
 
   // Initialize the Wi-Fi module
   WiFi.mode(WIFI_STA);
-  WiFi.setChannel(ESPNOW_WIFI_CHANNEL);
-  while (!WiFi.STA.started()) {
-    delay(100);
+  // WiFi.setChannel(ESPNOW_WIFI_CHANNEL);
+  // while (!WiFi.STA.started()) {
+  //   delay(100);
+  // }
+
+  // Init ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
   }
+
+  // Once ESPNow is successfully Init, we will register for Send CB to
+  // get the status of Trasnmitted packet
+  esp_now_register_send_cb(OnDataSent);
+  
+  // Register peer
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
+
+  // Add peer        
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
+  // Register for a callback function that will be called when data is received
+  esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
   
   char buffer[256];
   String text = getDefaultMacAddress();
@@ -449,18 +540,18 @@ void setup() {
   Serial.println("Wi-Fi parameters:");
   Serial.println("  Mode: STA");
   Serial.println("  MAC Address: " + WiFi.macAddress());
-  Serial.printf("  Channel: %d\n", ESPNOW_WIFI_CHANNEL);
+  // Serial.printf("  Channel: %d\n", ESPNOW_WIFI_CHANNEL);
 
   // Initialize the ESP-NOW protocol
-  if (!ESP_NOW.begin()) {
-    Serial.println("Failed to initialize ESP-NOW");
-    Serial.println("Reeboting in 5 seconds...");
-    delay(5000);
-    ESP.restart();
-  }
+  // if (!ESP_NOW.begin()) {
+  //   Serial.println("Failed to initialize ESP-NOW");
+  //   Serial.println("Reeboting in 5 seconds...");
+  //   delay(5000);
+  //   ESP.restart();
+  // }
 
   // Register the new peer callback
-  ESP_NOW.onNewPeer(register_new_master, NULL);
+  // ESP_NOW.onNewPeer(register_new_master, NULL);
 
   Serial.println("Setup complete. Waiting for a master to broadcast a message...");
 
@@ -471,13 +562,30 @@ void setup() {
   pinMode(raceActiveLED, OUTPUT);
   resetSwitch.setDebounceTime(50);
   resetRace();
-  if (commEstablished == false) {
-    displayToggleGate();
-  }
+
+
+  commEstablished = true;
+  Serial.print("Break beam sensor threshold: ");
+  Serial.println(irThreshold);
+  tft.fillScreen(TFT_BLACK);
+  displayReady();
+
+  // if (commEstablished == false) {
+  //   displayToggleGate();
+  // }
 }
 
 void loop() {
-  if ((raceStatus == ALL_AT_GATE) && (commEstablished == false)) {
+  resetSwitch.loop();
+  if (resetSwitch.isPressed()) {
+    Serial.println("***** resetSwitch.isPressed()");
+    if (calibrationMode == true) {
+      Serial.println("***** in calibrationMode, setting calibrationMode to false");
+      calibrationMode = false;
+      tft.fillScreen(TFT_BLACK);
+    }
+  }
+  if ((raceStatus == ALL_AT_GATE) && (calibrationMode == true)) {
     irThreshold = map(analogRead(potPin), 650, 4096, 0, 4096);
     irThreshold = analogRead(potPin);
     if (irThreshold != previousIrThreshold) {
@@ -572,7 +680,7 @@ void loop() {
     scoresReported = true;
   }
 
-  resetSwitch.loop();
+  // resetSwitch.loop();
   if (resetSwitch.isReleased()) {
     long now = millis();
     Serial.print("resetSwitch released, raceStatus: ");
